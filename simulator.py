@@ -68,7 +68,7 @@ class Simulator:
         self.vm = CDLL('./vm.lib')
         self.vm.vm_run.argtypes = [c_int, c_char_p, POINTER(c_uint),
                                     POINTER(POINTER(VM_Character)), c_int,
-                                    POINTER(POINTER(VM_Chest)), c_int]
+                                    POINTER(POINTER(VM_Chest)), c_int, c_int]
         self.vm.vm_run.restype = c_int
         self.players = []
         self.chests = []
@@ -94,7 +94,7 @@ class Simulator:
         for player in self.players:
             self.vm.vm_run(player.id, player.script.encode(), player.buffer,
                         characters, character_num,
-                        chests, len(self.chests))
+                        chests, len(self.chests), player.score)
         return
     
 if __name__ == "__main__":

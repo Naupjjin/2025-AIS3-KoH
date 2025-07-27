@@ -17,8 +17,8 @@ int vm_run(
     int team_id,
     const char opcode_cstr[],
     unsigned int* buffer,
-    VM_Character* players, int player_count,
-    VM_Chest* chests, int chest_count,
+    VM_Character** players, int player_count,
+    VM_Chest** chests, int chest_count,
     int scores
 );
 

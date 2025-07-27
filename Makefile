@@ -1,2 +1,2 @@
 all:
-	g++ -shared vm.cpp -o vm.lib
+	g++ -std=c++17 -shared vm/vm.cpp -o vm.lib

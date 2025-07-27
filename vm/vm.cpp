@@ -277,8 +277,8 @@ extern "C" int vm_run(
     int team_id,
     const char opcode_cstr[],
     unsigned int* buffer,
-    VM_Character* players, int player_count,
-    VM_Chest* chests, int chest_count,
+    VM_Character** players, int player_count,
+    VM_Chest** chests, int chest_count,
     int scores
 ) {
     
@@ -304,15 +304,16 @@ int main() {
 
     unsigned int buffer[100] = {};
 
-    VM_Character players[] = {
-        {1, 2, false},
-        {3, 4, true}
+    
+    VM_Character *players[] = {
+        new VM_Character{1, 2, false},
+        new VM_Character{3, 4, true}
     };
     int player_count = sizeof(players) / sizeof(players[0]);
 
-    VM_Chest chests[] = {
-        {5, 6},
-        {7, 8}
+    VM_Chest *chests[] = {
+        new VM_Chest{5, 6},
+        new VM_Chest{7, 8}
     };
     int chest_count = sizeof(chests) / sizeof(chests[0]);
 
@@ -329,7 +330,7 @@ int main() {
         ret;
     )";
 
-    int ops = vm_run(123, opcode, buffer, players, player_count, chests, chest_count);
+    int ops = vm_run(123, opcode, buffer, players, player_count, chests, chest_count, 0);
 
     std::cout << "vm_run returned: " << ops << "\n";
     for (int i = 0; i < 10; ++i) {
