@@ -110,8 +110,8 @@ class VM:
         self.characters = characters
 
         self.pc = 0
-        self.all_code = self.parse_opcode(opcode)
-        self.check_opcode_format(self.all_code)
+        self.opcode_list = self.parse_opcode(opcode)
+        self.check_opcode_format(self.opcode_list)
 
     def parse_opcode(self, opcode: str) -> list:
 
@@ -171,13 +171,118 @@ class VM:
             if expected_argc != actual_argc:
                 raise ValueError(f"Opcode '{instr}' expects {expected_argc} arguments, got {actual_argc}")
 
-    def execute_opcode(self, opcode_list: list):
+    def execute_opcode(self):
         '''
         return 
-        0 success
-        -1 failed
+        0 success (遇到 ret)
+        -1 failed (invalid op 或 exception)
         '''
-        opcode = ""
+        self.pc = 0
+        while self.pc < len(self.opcode_list):
+            tokens = self.opcode_list[self.pc]
+            op = tokens[0]
+
+            try:
+                match op:
+                    case "mov":
+                        dst, src = map(int, tokens[1:3])
+                        self.memory.write_memory(dst, self.memory.read_memory(src))
+
+                    case "movi": 
+                        dst, base, index = map(int, tokens[1:4])
+                        addr = self.memory.read_memory(index) + base
+                        value = self.memory.read_memory(addr)
+                        self.memory.write_memory(self.memory.read_memory(dst), value)
+
+                    case "addc":
+                        dst, constant = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(dst) + constant
+                        self.memory.write_memory(dst, value)
+
+                    case "addm":
+                        dst, src = map(int, tokens[1:3])
+                        value = self.memory.read_memory(dst) + self.memory.read_memory(src)
+                        self.memory.write_memory(dst, value)
+
+                    case "shr":
+                        dst, constant = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(dst) >> constant
+                        self.memory.write_memory(dst, value)
+
+                    case "shl":
+                        dst, constant = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(dst) << constant
+                        self.memory.write_memory(dst, value)
+
+                    case "mulc":
+                        dst, constant = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(dst) * constant
+                        self.memory.write_memory(dst, value)
+
+                    case "mulm":
+                        dst, src = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(dst) * self.memory.read_memory(src)
+                        self.memory.write_memory(dst, value)
+
+                    case "divm":
+                        dst, src = int(tokens[1]), int(tokens[2])
+                        divisor = self.memory.read_memory(src)
+                        if divisor == 0:
+                            return -1
+                        value = self.memory.read_memory(dst) // divisor
+                        self.memory.write_memory(dst, value)
+
+                    case "je":
+                        a, b = int(tokens[1]), int(tokens[2])
+                        label = tokens[3]
+                        if self.memory.read_memory(a) == self.memory.read_memory(b):
+                            self.pc = self.labels[label]
+                            continue
+
+                    case "jg":
+                        a, b = int(tokens[1]), int(tokens[2])
+                        label = tokens[3]
+                        if self.memory.read_memory(a) > self.memory.read_memory(b):
+                            self.pc = self.labels[label]
+                            continue
+
+                    case "inc":
+                        dst = int(tokens[1])
+                        self.memory.write_memory(dst, self.memory.read_memory(dst) + 1)
+
+                    case "dec":
+                        dst = int(tokens[1])
+                        self.memory.write_memory(dst, self.memory.read_memory(dst) - 1)
+
+                    case "and":
+                        a, b = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(a) & self.memory.read_memory(b)
+                        self.memory.write_memory(a, value)
+
+                    case "or":
+                        a, b = int(tokens[1]), int(tokens[2])
+                        value = self.memory.read_memory(a) | self.memory.read_memory(b)
+                        self.memory.write_memory(a, value)
+
+                    case "ng":
+                        a = int(tokens[1])
+                        value = ~self.memory.read_memory(a)
+                        self.memory.write_memory(a, value)
+
+                    case "ret":
+                        return 0
+
+                    case _:
+                        return -1  # Unknown instruction
+
+                self.pc += 1
+
+            except Exception as e:
+                print(f"[!] Exception: {e}")
+                return -1
+
+        return 0
+
 
             
         
@@ -197,6 +302,8 @@ class VM:
         team_id: 1~10
         pid: 
         '''
+
+        self.execute_opcode()
         return {
             "ops": 0,
             "team_id": 0,
@@ -204,13 +311,16 @@ class VM:
         }
 
     def debug(self):
-        print(self.all_code)
+        print(self.opcode_list)
+        for i in range(5):
+            print(self.memory.read_memory(i))
 
 
 player0_opcode = '''
 addc 0 100;
 addc 1 123;
 mulc 1 3;
+addc 0 269;
 je 0 1 label_1;
 addc 2 12345;
 ret;
@@ -229,6 +339,7 @@ player0_shared = SharedMemory()
 player0_Memory = Memory(player0_shared)
 
 player0_vm = VM(player0_info["team_id"], player0_info["pid"], player0_info["scores"], player0_Memory, player0_opcode)
+player0_vm.vm_run()
 player0_vm.debug()
 
 '''
