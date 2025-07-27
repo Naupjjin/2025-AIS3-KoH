@@ -135,7 +135,28 @@ class VM:
         return result
 
     def check_opcode_format(self, opcode_list: list):
-
+        OPCODE_FORMAT = {
+            "mov": 2,
+            "movi": 3,
+            "addc": 2,
+            "addm": 2,
+            "shr": 2,
+            "shl": 2,
+            "mulc": 2,
+            "mulm": 2,
+            "divm": 2,
+            "je": 3,
+            "jg": 3,
+            "inc": 1,
+            "dec": 1,
+            "and": 2,
+            "or": 2,
+            "ng": 1,
+            "ret": 0,
+            "load_score": 1,
+            "locate_nearest_k_chest": 2,
+            "locate_nearest_k_character": 2,
+        }
         pass
 
     def execute_opcode(self, opcode_list: list):
@@ -170,6 +191,9 @@ class VM:
             "pid": 0
         }
 
+    def debug(self):
+        print(self.all_code)
+
 
 player0_opcode = '''
 addc 0 100;
@@ -177,10 +201,10 @@ addc 1 123;
 mulc 1 3;
 je 0 1 label_1;
 addc 2 12345;
-ret
+ret;
 label_1;
-add 3 124
-ret
+add 3 124;
+ret;
 '''
 
 player0_info = {
@@ -193,6 +217,7 @@ player0_shared = SharedMemory()
 player0_Memory = Memory(player0_shared)
 
 player0_vm = VM(player0_info["team_id"], player0_info["pid"], player0_info["scores"], player0_Memory, player0_opcode)
+player0_vm.debug()
 
 '''
 all opcode:
