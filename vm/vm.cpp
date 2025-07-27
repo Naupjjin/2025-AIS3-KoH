@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 
 
 void parse_opcode(
@@ -109,6 +110,7 @@ int execute_opcode(
     int player_count 
 ) {
     int pc = 0;
+    auto start_time = std::chrono::steady_clock::now(); 
 
     auto read_mem = [&](int addr) -> unsigned int {
         if (addr < 0 || addr >= buffer_size) {
@@ -125,6 +127,12 @@ int execute_opcode(
     };
 
     while (pc < (int)instructions.size()) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
+        if (elapsed >= 3) {
+            return 0;  
+        }
+
         const auto& tokens = instructions[pc];
         const std::string& op = tokens[0];
         pc++;
@@ -454,12 +462,17 @@ int main() {
         locate_nearest_k_character 1, 18;
         locate_nearest_k_character 2, 21;
         je 0 1 label_1;
+        jg 0 1 label_2;
         addc 2 9999;
         addc 30 1;
         ret 30;
         label_1;
         addc 3 777;
         addc 30 2;
+        ret 30;
+        label_2;
+        addc 30 3;
+        jg 0 1 label_2;
         ret 30;
     )";
     int scores = 100;
