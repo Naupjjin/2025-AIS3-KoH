@@ -33,6 +33,10 @@ class IsolationMemory:
         50 51 52
         53 *  54
         55 56 57
+
+        mem[58:62]
+        prev turn 
+
         mem[58:100] : reserved
         '''
         self.isolation = [0 for _ in range(50)]
@@ -87,7 +91,7 @@ VM will return
 '''
 
 class VM:
-    def __init__(self, team_id: int, pid: int, scores: int, memory: Memory , chests = [], characters = []):
+    def __init__(self, team_id: int, pid: int, scores: int, memory: Memory , chests = [], characters = [], opcode: str):
         '''
         chests: all chests (x,y)
         characters: all characters (x,y,id)
@@ -95,7 +99,7 @@ class VM:
         self.team_id = team_id
         self.pid = pid
 
-        self.all_code = self.parse_opcode()
+        self.all_code = self.parse_opcode(opcode)
         self.labels = {}
 
         self.scores = scores
@@ -198,6 +202,11 @@ class VM:
         pass
 
 
-
+test_opcode = '''
+addc 0 100;
+addc 1 123;
+mulc 1 3;
+lable 1;
+'''
 
 
