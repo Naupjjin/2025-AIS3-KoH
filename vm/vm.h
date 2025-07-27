@@ -19,7 +19,7 @@ int vm_run(
     unsigned int* buffer,
     VM_Character** players, int player_count,
     VM_Chest** chests, int chest_count,
-    int scores
+    int scores, VM_Character* self
 );
 
 #ifdef __cplusplus

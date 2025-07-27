@@ -98,6 +98,7 @@ void check_opcode_format(const std::vector<std::vector<std::string>>& opcode_lis
 int execute_opcode(
     const std::vector<std::vector<std::string>>& instructions,
     const std::unordered_map<std::string, int>& labels,
+    VM_Character* self,
     unsigned int* buffer,
     int buffer_size, // 100
     int team_id,
@@ -294,7 +295,7 @@ extern "C" int vm_run(
     unsigned int* buffer,
     VM_Character** players, int player_count,
     VM_Chest** chests, int chest_count,
-    int scores
+    int scores, VM_Character* self
 ) {
     
     std::vector<std::vector<std::string>> instructions;
@@ -307,7 +308,7 @@ extern "C" int vm_run(
         std::cerr << "Opcode format error: " << e.what() << "\n";
     }
     
-    execute_opcode(instructions, labels, buffer, 100, team_id, scores);
+    execute_opcode(instructions, labels, self, buffer, 100, team_id, scores);
 
 
 
@@ -322,8 +323,10 @@ int main() {
 
     
     VM_Character *players[] = {
-        new VM_Character{1, 2, false},
-        new VM_Character{3, 4, true}
+        new VM_Character{1, 4, false}, // test is self 
+        new VM_Character{42, 4, false},
+        new VM_Character{3, 4, true},
+        new VM_Character{52, 4, false}
     };
     int player_count = sizeof(players) / sizeof(players[0]);
 
@@ -350,7 +353,7 @@ int main() {
     int scores = 100;
     int team_id = 7;
 
-    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores);
+    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores, players[0]);
 
     std::cout << "vm_run returned: " << ops << "\n";
     for (int i = 0; i < 10; ++i) {
