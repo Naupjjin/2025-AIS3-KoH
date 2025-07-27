@@ -93,13 +93,10 @@ VM will return
 '''
 
 class VM:
-    def __init__(self, team_id: int, pid: int, scores: int, memory: Memory, opcode: str , chests = [], characters = []):
-        '''
-        chests: all chests (x,y)
-        characters: all characters (x,y,id)
-        '''
+    def __init__(self, team_id: int, scores: int, memory: Memory, opcode: str , chests: list, characters: list):
+
         self.team_id = team_id
-        self.pid = pid
+
         self.labels = {}
 
         self.scores = scores
@@ -268,6 +265,12 @@ class VM:
                     value = ~self.memory.read_memory(a)
                     self.memory.write_memory(a, value)
 
+                case "load_score":
+                    mem = int(tokens[1])
+                    self.memory.write_memory(mem, self.scores)
+
+                
+
                 case "ret":
                     return 0
 
@@ -284,7 +287,7 @@ class VM:
             
         
 
-    def vm_run(self):
+    def vm_run(self) -> int:
         '''
         ops:
         -1 error
@@ -295,17 +298,10 @@ class VM:
         4 interact
         5 attack
         6 fork
-
-        team_id: 1~10
-        pid: 
         '''
 
         self.execute_opcode()
-        return {
-            "ops": 0,
-            "team_id": 0,
-            "pid": 0
-        }
+        return ops
 
     def debug(self):
         print(self.opcode_list)
@@ -328,14 +324,16 @@ ret;
 
 player0_info = {
     "team_id": 0,
-    "pid": 100,
     "scores": 100,
 }
+
+chests = [(1,2),(57, 86),(7,25)]
+
 
 player0_shared = SharedMemory()
 player0_Memory = Memory(player0_shared)
 
-player0_vm = VM(player0_info["team_id"], player0_info["pid"], player0_info["scores"], player0_Memory, player0_opcode)
+player0_vm = VM(player0_info["team_id"], player0_info["scores"], player0_Memory, player0_opcode)
 player0_vm.vm_run()
 player0_vm.debug()
 
