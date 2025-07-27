@@ -26,6 +26,7 @@ class Character:
     def __init__(self, x: int, y :int, is_fork: bool):
         self.vm_char = VM_Character(x, y, is_fork)
         self.selfbuf = (c_uint * 8)()
+        self.health = 3
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
         self_y = self.vm_char.y
@@ -80,10 +81,18 @@ int vm_run(
         for player in self.players:
             if character.can_interact(player.character.vm_char.x, player.character.vm_char.y):
                 print(f"attack player {player.id}")
+                player.character.health -= 1
+                if player.character.health <= 0:
+                    #add score
+                    pass
             for fork in player.forks:
                 if character.can_interact(fork.vm_char.x, fork.vm_char.y):
-                    print(f"attack player {player.id} fork")            
-        pass
+                    print(f"attack player {player.id} fork")     
+                    fork.health -= 1
+                    if fork.health <= 0:
+                        #add score
+                        pass       
+        
 
     def interact(self, character: Character):
         print("interact")
@@ -113,6 +122,8 @@ int vm_run(
             i += 1
             for fork in player.forks:
                 characters[i] = pointer(fork.vm_char)
+
+        # record results
         character_opcode = []
         for player in self.players:
 
@@ -133,47 +144,37 @@ int vm_run(
                         chests, len(self.chests), player.score, fork.vm_char)
                 memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
                 character_opcode.append((player, fork, opcode))
-
+        # do operations
         for player, character, opcode in character_opcode:
             match opcode:
-                case 0:
-                    self.move(character, 0, 1)
                 case 1:
-                    self.move(character, 0, -1)
+                    self.move(character, 0, 1)
                 case 2:
-                    self.move(character, 1, 0)
+                    self.move(character, 0, -1)
                 case 3:
-                    self.move(character, -1, 0)
+                    self.move(character, 1, 0)
                 case 4:
-                    self.interact(character)
+                    self.move(character, -1, 0)
                 case 5:
-                    self.attack(character)
+                    self.interact(character)
                 case 6:
+                    self.attack(character)
+                case 7:
                     self.fork(character, player)
-            
+        # remove dead characters
+        for player in self.players:
+            if player.character.health <= 0:
+                #dead
+                pass
+            for fork in player.forks:
+                if fork.health <= 0:
+                    player.forks.remove(fork)
         return
     
 if __name__ == "__main__":
     sim = Simulator(1)
     sim.players[0].script = '''
-        addc 0 100;
-        addc 1 23;
-        mulc 1 2;
-        addc 1 54;
-        load_score 5;
-        get_id 6;
-        locate_nearest_k_chest 0 7;
-        locate_nearest_k_chest 1 9;
-        locate_nearest_k_chest 2 11;
-        locate_nearest_k_character 0, 15;
-        locate_nearest_k_character 1, 18;
-        locate_nearest_k_character 2, 21;
-        je 0 1 label_1;
-        addc 2 9999;
-        ret;
-        label_1;
-        addc 3 777;
-        ret;
+
 '''
     for i in range(200):
         sim.simulate()
