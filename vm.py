@@ -91,7 +91,7 @@ VM will return
 '''
 
 class VM:
-    def __init__(self, team_id: int, pid: int, scores: int, memory: Memory , chests = [], characters = [], opcode: str):
+    def __init__(self, team_id: int, pid: int, scores: int, memory: Memory, opcode: str , chests = [], characters = []):
         '''
         chests: all chests (x,y)
         characters: all characters (x,y,id)
