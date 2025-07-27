@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <cstring>
 #include <iostream>
-
+#include <algorithm>
 
 
 void parse_opcode(
@@ -102,7 +102,11 @@ int execute_opcode(
     unsigned int* buffer,
     int buffer_size, // 100
     int team_id,
-    int scores
+    int scores,
+    VM_Chest** chests,      
+    int chest_count,
+    VM_Character** players,
+    int player_count 
 ) {
     int pc = 0;
 
@@ -258,6 +262,61 @@ int execute_opcode(
             int dst = std::stoi(tokens[1]);
             write_mem(dst, team_id);
         }
+        else if (op == "locate_nearest_k_chest") {
+            unsigned int k = std::stoi(tokens[1]);
+            int mem_base = std::stoi(tokens[2]);
+
+            if (k >= (unsigned int)chest_count){
+                throw std::runtime_error("Invalid k");
+            }
+        
+            struct Entry {
+                int x, y, dist, idx;
+            };
+        
+            std::vector<Entry> chest_info;
+            for (int i = 0; i < chest_count; ++i) {
+                int dx = chests[i]->x - self->x;
+                int dy = chests[i]->y - self->y;
+                int dist = dx * dx + dy * dy;
+                chest_info.push_back({chests[i]->x, chests[i]->y, dist, i});
+            }
+        
+            std::sort(chest_info.begin(), chest_info.end(), [](const Entry& a, const Entry& b) {
+                return a.dist < b.dist;
+            });
+        
+            write_mem(mem_base, chest_info[k].x);
+            write_mem(mem_base + 1, chest_info[k].y);
+        }        
+        else if (op == "locate_nearest_k_character") {
+            unsigned int k = std::stoi(tokens[1]);
+            int mem_base = std::stoi(tokens[2]);
+
+            if (k >= (unsigned int)player_count) return -1;
+
+            struct Entry {
+                int x, y, dist, idx;
+                Entry(int x_, int y_, int dist_, int idx_) : x(x_), y(y_), dist(dist_), idx(idx_) {}
+            };
+        
+            std::vector<Entry> character_info;
+            for (int i = 0; i < player_count; ++i) {
+                int dx = players[i]->x - self->x;
+                int dy = players[i]->y - self->y;
+                int dist = dx * dx + dy * dy;
+                character_info.emplace_back(players[i]->x, players[i]->y, dist, i);
+            }
+        
+            std::sort(character_info.begin(), character_info.end(), [](const Entry& a, const Entry& b) {
+                return a.dist < b.dist;
+            });
+        
+            int idx = character_info[k].idx;
+            write_mem(mem_base, players[idx]->is_fork ? 1 : 0);
+            write_mem(mem_base + 1, players[idx]->x);
+            write_mem(mem_base + 2, players[idx]->y);
+        }
         else {
             throw std::runtime_error("Unknown instruction: " + op);
         }
@@ -308,7 +367,7 @@ extern "C" int vm_run(
         std::cerr << "Opcode format error: " << e.what() << "\n";
     }
     
-    execute_opcode(instructions, labels, self, buffer, 100, team_id, scores);
+    execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
 
 
 
@@ -323,16 +382,21 @@ int main() {
 
     
     VM_Character *players[] = {
-        new VM_Character{1, 4, false}, // test is self 
         new VM_Character{42, 4, false},
         new VM_Character{3, 4, true},
         new VM_Character{52, 4, false}
     };
+
+    VM_Character *self[] = {
+        new VM_Character{6, 4, false}
+    }; // test is self
+     
     int player_count = sizeof(players) / sizeof(players[0]);
 
     VM_Chest *chests[] = {
-        new VM_Chest{5, 6},
-        new VM_Chest{7, 8}
+        new VM_Chest{4, 4},
+        new VM_Chest{7, 4},
+        new VM_Chest{8, 4}
     };
     int chest_count = sizeof(chests) / sizeof(chests[0]);
 
@@ -343,6 +407,12 @@ int main() {
         addc 1 54;
         load_score 5;
         get_id 6;
+        locate_nearest_k_chest 0 7;
+        locate_nearest_k_chest 1 9;
+        locate_nearest_k_chest 2 11;
+        locate_nearest_k_character 0, 15;
+        locate_nearest_k_character 1, 18;
+        locate_nearest_k_character 2, 21;
         je 0 1 label_1;
         addc 2 9999;
         ret;
@@ -353,10 +423,10 @@ int main() {
     int scores = 100;
     int team_id = 7;
 
-    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores, players[0]);
+    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores, self[0]);
 
     std::cout << "vm_run returned: " << ops << "\n";
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 30; ++i) {
         std::cout << "buffer[" << i << "] = " << buffer[i] << "\n";
     }
 
