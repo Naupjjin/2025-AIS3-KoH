@@ -135,6 +135,7 @@ class VM:
         return result
 
     def check_opcode_format(self, opcode_list: list):
+        
         OPCODE_FORMAT = {
             "mov": 2,
             "movi": 3,
@@ -157,7 +158,18 @@ class VM:
             "locate_nearest_k_chest": 2,
             "locate_nearest_k_character": 2,
         }
-        pass
+
+        for tokens in opcode_list:
+            instr = tokens[0]
+
+            if instr not in OPCODE_FORMAT:
+                raise ValueError(f"Unknown opcode: {instr}")
+
+            expected_argc = OPCODE_FORMAT[instr]
+            actual_argc = len(tokens) - 1
+
+            if expected_argc != actual_argc:
+                raise ValueError(f"Opcode '{instr}' expects {expected_argc} arguments, got {actual_argc}")
 
     def execute_opcode(self, opcode_list: list):
         '''
@@ -203,7 +215,7 @@ je 0 1 label_1;
 addc 2 12345;
 ret;
 label_1;
-add 3 124;
+addc 3 124;
 ret;
 '''
 
