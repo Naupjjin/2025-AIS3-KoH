@@ -1,3 +1,5 @@
+import re
+
 UINT_MASK = 0xFFFFFFFF
 
 class SharedMemory:
@@ -98,8 +100,6 @@ class VM:
         '''
         self.team_id = team_id
         self.pid = pid
-
-        self.all_code = self.parse_opcode(opcode)
         self.labels = {}
 
         self.scores = scores
@@ -110,76 +110,41 @@ class VM:
         self.characters = characters
 
         self.pc = 0
+        self.all_code = self.parse_opcode(opcode)
+        self.check_opcode_format(self.all_code)
 
-    def check_opcode_format():
+    def parse_opcode(self, opcode: str) -> list:
+
+        lines = opcode.strip().split(";")
+        result = []
+        pc = 0
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # label_<number> 
+            if re.fullmatch(r'label_\d+', line):
+                self.labels[line] = pc
+                continue
+
+            tokens = line.split()
+            result.append(tokens)
+            pc += 1
+
+        return result
+
+    def check_opcode_format(self, opcode_list: list):
 
         pass
 
-    def parse_opcode(self):
-        pass
-
-    def execute_opcode(self):
+    def execute_opcode(self, opcode_list: list):
+        '''
+        return 
+        0 success
+        -1 failed
+        '''
         opcode = ""
-        match opcode:
-            case "mov":
-                # mov <mem1> <mem2>
-                pass
-            case "movi":
-                # movi <mem1> <mem2> <mem3>
-                pass
-            case "addc":
-                # addc <mem1> #<constant>
-                pass
-            case "addm":
-                # addm <mem1> <mem2>
-                pass
-            case "shr":
-                # shr <mem1> #<constant>
-                pass
-            case "shl":
-                # shl <mem1> #<constant>
-                pass
-            case "mulc":
-                # mulc <mem1> #<constant>
-                pass
-            case "mulm":
-                # mulm <mem1> <mem2>
-                pass
-            case "divm":
-                # divm <mem1> <mem2>
-                pass
-            case "je":
-                # je <mem1> <mem2> $<label>
-                pass
-            case "jg":
-                # jg <mem1> <mem2> $<label>
-                pass
-            case "inc":
-                # inc <mem1>
-                pass
-            case "dec":
-                # dec <mem2>
-                pass
-            case "and":
-                # and <mem1> <mem2>
-                pass
-            case "or":
-                # or <mem1> <mem2>
-                pass
-            case "ng":
-                # ng <mem1>
-                pass
-            case "load_score":
-                # load_score <mem1>
-                pass
-            case "locate_nearest_k_chest":
-                # locate_nearest_k_chest <mem1> <mem2>
-                pass
-            case "locate_nearest_k_character":
-                # locate_nearest_k_character <mem1> <mem2>
-                pass
-            case _:
-                raise ValueError(f"Unknown opcode: {opcode}")
 
             
         
@@ -199,14 +164,72 @@ class VM:
         team_id: 1~10
         pid: 
         '''
-        pass
+        return {
+            "ops": 0,
+            "team_id": 0,
+            "pid": 0
+        }
 
 
-test_opcode = '''
+player0_opcode = '''
 addc 0 100;
 addc 1 123;
 mulc 1 3;
-lable 1;
+je 0 1 label_1;
+addc 2 12345;
+ret
+label_1;
+add 3 124
+ret
 '''
 
+player0_info = {
+    "team_id": 0,
+    "pid": 100,
+    "scores": 100,
+}
 
+player0_shared = SharedMemory()
+player0_Memory = Memory(player0_shared)
+
+player0_vm = VM(player0_info["team_id"], player0_info["pid"], player0_info["scores"], player0_Memory, player0_opcode)
+
+'''
+all opcode:
+// mem1 = mem2
+mov <mem1> <mem2>
+
+// mem1 = mem2[mem3]
+movi <mem1> <mem2> <mem3>
+// mem1 += constant
+addc <mem1> #<constant>
+// mem1 += mem2
+addm <mem1> <mem2>
+shr <mem1> #<constant>
+shl <mem1> #<constant>
+mulc <mem1> #<constant>
+mulm <mem1> <mem2>
+divm <mem1> <mem2>
+je <mem1> <mem2> $<label>
+jg <mem1> <mem2> $<label>
+inc <mem1>
+dec <mem2>
+and <mem1> <mem2>
+or <mem1> <mem2>
+
+// mem = ~mem
+ng <mem1>
+
+ret (end)
+
+// mem1 = score
+load_score <mem1>
+
+// mem2[0], mem2[1] = chest[mem1].xy
+locate_nearest_k_chest <mem1> <mem2>
+
+// mem2[0], mem2[1], mem2[2] = character[k].is_fork, character[k].xy
+locate_nearest_k_character <mem1> <mem2>
+
+; Separate opcodes
+'''
