@@ -127,6 +127,8 @@ int execute_opcode(
     while (pc < (int)instructions.size()) {
         const auto& tokens = instructions[pc];
         const std::string& op = tokens[0];
+        pc++;
+
 
         if (op == "mov") {
             // mov <mem1> <mem2>
@@ -267,7 +269,9 @@ int execute_opcode(
             int mem_base = std::stoi(tokens[2]);
 
             if (k >= (unsigned int)chest_count){
-                throw std::runtime_error("Invalid k");
+                write_mem(mem_base, -1);
+                write_mem(mem_base + 1, -1);
+                continue;
             }
         
             struct Entry {
@@ -321,7 +325,6 @@ int execute_opcode(
             throw std::runtime_error("Unknown instruction: " + op);
         }
 
-        pc++;
     }
 
     return 0;
