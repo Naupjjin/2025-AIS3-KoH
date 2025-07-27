@@ -247,11 +247,13 @@ int execute_opcode(
             return 0; 
         }
         else if (op == "load_score") {
+            // load_score <mem1>
             int dst = std::stoi(tokens[1]);
             write_mem(dst, scores);
             
         }
         else if (op == "get_id") {
+            // get_id <mem1>
             int dst = std::stoi(tokens[1]);
             write_mem(dst, team_id);
         }
