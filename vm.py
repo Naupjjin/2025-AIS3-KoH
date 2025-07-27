@@ -115,7 +115,70 @@ class VM:
         pass
 
     def execute_opcode(self):
-        pass
+        opcode = ""
+        match opcode:
+            case "mov":
+                # mov <mem1> <mem2>
+                pass
+            case "movi":
+                # movi <mem1> <mem2> <mem3>
+                pass
+            case "addc":
+                # addc <mem1> #<constant>
+                pass
+            case "addm":
+                # addm <mem1> <mem2>
+                pass
+            case "shr":
+                # shr <mem1> #<constant>
+                pass
+            case "shl":
+                # shl <mem1> #<constant>
+                pass
+            case "mulc":
+                # mulc <mem1> #<constant>
+                pass
+            case "mulm":
+                # mulm <mem1> <mem2>
+                pass
+            case "divm":
+                # divm <mem1> <mem2>
+                pass
+            case "je":
+                # je <mem1> <mem2> $<label>
+                pass
+            case "jg":
+                # jg <mem1> <mem2> $<label>
+                pass
+            case "inc":
+                # inc <mem1>
+                pass
+            case "dec":
+                # dec <mem2>
+                pass
+            case "and":
+                # and <mem1> <mem2>
+                pass
+            case "or":
+                # or <mem1> <mem2>
+                pass
+            case "ng":
+                # ng <mem1>
+                pass
+            case "load_score":
+                # load_score <mem1>
+                pass
+            case "locate_nearest_k_chest":
+                # locate_nearest_k_chest <mem1> <mem2>
+                pass
+            case "locate_nearest_k_character":
+                # locate_nearest_k_character <mem1> <mem2>
+                pass
+            case _:
+                raise ValueError(f"Unknown opcode: {opcode}")
+
+            
+        
 
     def vm_run(self):
         '''
