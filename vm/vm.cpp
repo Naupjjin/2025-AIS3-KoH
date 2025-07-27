@@ -67,6 +67,7 @@ void check_opcode_format(const std::vector<std::vector<std::string>>& opcode_lis
         {"ng", 1},
         {"ret", 0},
         {"load_score", 1},
+        {"get_id", 1},
         {"locate_nearest_k_chest", 2},
         {"locate_nearest_k_character", 2},
     };
@@ -98,7 +99,9 @@ int execute_opcode(
     const std::vector<std::vector<std::string>>& instructions,
     const std::unordered_map<std::string, int>& labels,
     unsigned int* buffer,
-    int buffer_size // 100
+    int buffer_size, // 100
+    int team_id,
+    int scores
 ) {
     int pc = 0;
 
@@ -243,6 +246,15 @@ int execute_opcode(
             // ret (end)
             return 0; 
         }
+        else if (op == "load_score") {
+            int dst = std::stoi(tokens[1]);
+            write_mem(dst, scores);
+            
+        }
+        else if (op == "get_id") {
+            int dst = std::stoi(tokens[1]);
+            write_mem(dst, team_id);
+        }
         else {
             throw std::runtime_error("Unknown instruction: " + op);
         }
@@ -273,6 +285,7 @@ void debug_print_parsed(
     }
 }
 
+
 extern "C" int vm_run(
     int team_id,
     const char opcode_cstr[],
@@ -292,6 +305,7 @@ extern "C" int vm_run(
         std::cerr << "Opcode format error: " << e.what() << "\n";
     }
     
+    execute_opcode(instructions, labels, buffer, 100, team_id, scores);
 
 
 
@@ -321,7 +335,9 @@ int main() {
         addc 0 100;
         addc 1 23;
         mulc 1 2;
-        addc 0 46;
+        addc 1 54;
+        load_score 5;
+        get_id 6;
         je 0 1 label_1;
         addc 2 9999;
         ret;
@@ -329,8 +345,10 @@ int main() {
         addc 3 777;
         ret;
     )";
+    int scores = 100;
+    int team_id = 7;
 
-    int ops = vm_run(123, opcode, buffer, players, player_count, chests, chest_count, 0);
+    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores);
 
     std::cout << "vm_run returned: " << ops << "\n";
     for (int i = 0; i < 10; ++i) {
