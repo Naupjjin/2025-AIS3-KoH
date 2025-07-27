@@ -52,13 +52,12 @@ void check_opcode_format(const std::vector<std::vector<std::string>>& opcode_lis
     static const std::unordered_map<std::string, int> OPCODE_FORMAT = {
         {"mov", 2},
         {"movi", 3},
-        {"addc", 2},
-        {"addm", 2},
+        {"add", 2},
+        {"sub", 2},
         {"shr", 2},
         {"shl", 2},
-        {"mulc", 2},
-        {"mulm", 2},
-        {"divm", 2},
+        {"mul", 2},  
+        {"div", 2},
         {"je", 3},
         {"jg", 3},
         {"inc", 1},
@@ -126,6 +125,19 @@ int execute_opcode(
         buffer[addr] = val;
     };
 
+    auto is_constant = [](const std::string& token) {
+        return !token.empty() && token[0] == '#';
+    };
+    
+    auto parse_operand = [&](const std::string& token) -> unsigned int {
+        if (is_constant(token)) {
+            return std::stoi(token.substr(1));
+        } else {
+            int addr = std::stoi(token);
+            return read_mem(addr);
+        }
+    };
+
     while (pc < (int)instructions.size()) {
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
@@ -137,15 +149,66 @@ int execute_opcode(
         const std::string& op = tokens[0];
         pc++;
 
+        /*
+        // mem1 = mem2
+        mov <mem1> <mem2>
+        mov <mem1> #<constant>
+
+        // mem1 = mem2[mem3]
+        movi <mem1> <mem2> <mem3>
+        // mem1 += constant
+        add <mem1> <mem2>
+        add <mem1> #<constant>
+
+        shr <mem1> <mem2>
+        shr <mem1> #<constant>
+        shl <mem1> <mem2>
+        shl <mem1> #<constant>
+
+        mul <mem1> <mem2>
+        mul <mem1> #<constant>
+
+        div <mem1> <mem2>
+        div <mem1> #<constant>
+
+        je <mem1> <mem2> $<label>
+        je <mem1> #<constant> $<label>
+        jg <mem1> <mem2> $<label>
+        jg <mem1> #<constant> $<label>
+
+        inc <mem1>
+        dec <mem2>
+        and <mem1> <mem2>
+        and <mem1> #<mem2>
+        or <mem1> <mem2>
+        or <mem1> #<mem2>
+
+        // mem = ~mem
+        ng <mem1>
+
+        ret <mem1> (end)
+        ret #<constant> (end)
+
+        // mem1 = score
+        load_score <mem1>
+        get_id <mem1>
+
+        // mem2[0], mem2[1] = chest[k].xy
+        locate_nearest_k_chest k <mem2>
+
+        // mem2[0], mem2[1], mem2[2] = character[k].is_fork, character[k].xy
+        locate_nearest_k_character k <mem2>
+
+
+        ; Separate opcodes
+        */
 
         if (op == "mov") {
-            // mov <mem1> <mem2>
             int dst = std::stoi(tokens[1]);
-            int src = std::stoi(tokens[2]);
-            write_mem(dst, read_mem(src));
+            unsigned int value = parse_operand(tokens[2]);
+            write_mem(dst, value);
         }
         else if (op == "movi") {
-            // movi <mem1> <mem2> <mem3>
             int dst = std::stoi(tokens[1]);
             int base = std::stoi(tokens[2]);
             int index = std::stoi(tokens[3]);
@@ -153,65 +216,42 @@ int execute_opcode(
             unsigned int value = read_mem(addr);
             write_mem(dst, value);
         }
-        else if (op == "addc") {
-            // addc <mem1> #<constant>
+        else if (op == "add") {
             int dst = std::stoi(tokens[1]);
-            int constant = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) + constant;
+            unsigned int value = read_mem(dst) + parse_operand(tokens[2]);
             write_mem(dst, value);
         }
-        else if (op == "addm") {
-            // addm <mem1> <mem2>
+        else if (op == "sub") {
             int dst = std::stoi(tokens[1]);
-            int src = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) + read_mem(src);
+            unsigned int value = read_mem(dst) - parse_operand(tokens[2]);
             write_mem(dst, value);
         }
         else if (op == "shr") {
-            // shr <mem1> #<constant>
             int dst = std::stoi(tokens[1]);
-            int constant = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) >> constant;
+            unsigned int value = read_mem(dst) >> parse_operand(tokens[2]);
             write_mem(dst, value);
         }
         else if (op == "shl") {
-            // shl <mem1> #<constant>
             int dst = std::stoi(tokens[1]);
-            int constant = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) << constant;
+            unsigned int value = read_mem(dst) << parse_operand(tokens[2]);
             write_mem(dst, value);
         }
-        else if (op == "mulc") {
-            // mulc <mem1> #<constant>
+        else if (op == "mul") {
             int dst = std::stoi(tokens[1]);
-            int constant = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) * constant;
+            unsigned int value = read_mem(dst) * parse_operand(tokens[2]);
             write_mem(dst, value);
         }
-        else if (op == "mulm") {
-            // mulm <mem1> <mem2>
+        else if (op == "div") {
             int dst = std::stoi(tokens[1]);
-            int src = std::stoi(tokens[2]);
-            unsigned int value = read_mem(dst) * read_mem(src);
-            write_mem(dst, value);
-        }
-        else if (op == "divm") {
-            // divm <mem1> <mem2>
-            int dst = std::stoi(tokens[1]);
-            int src = std::stoi(tokens[2]);
-            unsigned int divisor = read_mem(src);
-            if (divisor == 0) {
-                return -1; 
-            }
-            unsigned int value = read_mem(dst) / divisor;
-            write_mem(dst, value);
+            unsigned int divisor = parse_operand(tokens[2]);
+            if (divisor == 0) return -1;
+            write_mem(dst, read_mem(dst) / divisor);
         }
         else if (op == "je") {
-            // je <mem1> <mem2> $<label>
-            int a = std::stoi(tokens[1]);
-            int b = std::stoi(tokens[2]);
+            unsigned int lhs = parse_operand(tokens[1]);
+            unsigned int rhs = parse_operand(tokens[2]);
             const std::string& label = tokens[3];
-            if (read_mem(a) == read_mem(b)) {
+            if (lhs == rhs) {
                 auto it = labels.find(label);
                 if (it == labels.end()) throw std::runtime_error("Label not found: " + label);
                 pc = it->second;
@@ -219,11 +259,10 @@ int execute_opcode(
             }
         }
         else if (op == "jg") {
-            // jg <mem1> <mem2> $<label>
-            int a = std::stoi(tokens[1]);
-            int b = std::stoi(tokens[2]);
+            unsigned int lhs = parse_operand(tokens[1]);
+            unsigned int rhs = parse_operand(tokens[2]);
             const std::string& label = tokens[3];
-            if (read_mem(a) > read_mem(b)) {
+            if (lhs > rhs) {
                 auto it = labels.find(label);
                 if (it == labels.end()) throw std::runtime_error("Label not found: " + label);
                 pc = it->second;
@@ -240,43 +279,22 @@ int execute_opcode(
             int dst = std::stoi(tokens[1]);
             write_mem(dst, read_mem(dst) - 1);
         }
-        else if (op == "and") {
-            // and <mem1> <mem2>
-            int a = std::stoi(tokens[1]);
-            int b = std::stoi(tokens[2]);
-            write_mem(a, read_mem(a) & read_mem(b));
-        }
-        else if (op == "or") {
-            // or <mem1> <mem2>
-            int a = std::stoi(tokens[1]);
-            int b = std::stoi(tokens[2]);
-            write_mem(a, read_mem(a) | read_mem(b));
-        }
         else if (op == "ng") {
             // ng <mem1>
             int a = std::stoi(tokens[1]);
             write_mem(a, ~read_mem(a));
         }
-        else if (op == "ret") {
-            /* 
-            -1 vm_run error
-            ops:
-            0 stop
-            1 up
-            2 down
-            3 left
-            4 right
-            5 interact
-            6 attack
-            7 fork
-
-            others –> 0
-            */
-
+        else if (op == "and") {
             int dst = std::stoi(tokens[1]);
-            int ret = read_mem(dst);
-
-            return ret; 
+            write_mem(dst, read_mem(dst) & parse_operand(tokens[2]));
+        }
+        else if (op == "or") {
+            int dst = std::stoi(tokens[1]);
+            write_mem(dst, read_mem(dst) | parse_operand(tokens[2]));
+        }
+        else if (op == "ret") {
+            unsigned int value = parse_operand(tokens[1]);
+            return value;
         }
         else if (op == "load_score") {
             // load_score <mem1>
@@ -393,6 +411,8 @@ extern "C" int vm_run(
     std::vector<std::vector<std::string>> instructions;
     std::unordered_map<std::string, int> labels;
 
+    int ret = 0;
+
     try {
         parse_opcode(opcode_cstr, instructions, labels);
         check_opcode_format(instructions);
@@ -415,7 +435,12 @@ extern "C" int vm_run(
 
     others –> 0
     */
-    int ret = execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
+    try {
+        ret = execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
+    } catch (const std::runtime_error& e) {
+        std::cerr << "[vm_run error] error: " << e.what() << "\n";
+        ret = 0;
+    }
     if (ret < -1 || ret > 7) ret = 0;
 
 
@@ -449,31 +474,17 @@ int main() {
     int chest_count = sizeof(chests) / sizeof(chests[0]);
 
     const char* opcode = R"(
-        addc 0 100;
-        addc 1 23;
-        mulc 1 2;
-        addc 1 51;
-        load_score 5;
-        get_id 6;
-        locate_nearest_k_chest 4 7;
-        locate_nearest_k_chest 1 9;
-        locate_nearest_k_chest 2 11;
-        locate_nearest_k_character 0, 15;
-        locate_nearest_k_character 1, 18;
-        locate_nearest_k_character 2, 21;
-        je 0 1 label_1;
-        jg 0 1 label_2;
-        addc 2 9999;
-        addc 30 1;
-        ret 30;
+        add 0 #26;
+        add 1 #456;
+        sub 1 #430;
+        add 1000, #100;
+        locate_nearest_k_character 1 2;
+        je 0 #1 label_2;
         label_1;
-        addc 3 777;
-        addc 30 2;
-        ret 30;
+        ret #3;
         label_2;
-        addc 30 3;
-        jg 0 1 label_2;
-        ret 30;
+        ret #1;
+
     )";
     int scores = 100;
     int team_id = 7;
