@@ -16,7 +16,7 @@ class Chest:
     CHALS = [(chal1, 100)]
 
     def __init__(self, x: int, y: int):
-        self.chest = VM_Chest(x, y)
+        self.vm_chest = VM_Chest(x, y)
         self.chals = self.chal1
 
     def interact():
@@ -26,7 +26,13 @@ class Character:
     def __init__(self, x: int, y :int, is_fork: bool):
         self.vm_char = VM_Character(x, y, is_fork)
         self.selfbuf = (c_uint * 8)()
-
+    def can_interact(self, x:int, y:int):
+        self_x = self.vm_char.x 
+        self_y = self.vm_char.y
+        # surrounding cells
+        if self_x != x and self_y != y and abs(self_x - x) <= 1 and abs(self_y - y) <= 1:
+            return True
+        return False
 
 class Player:
     forks: list[Character]
@@ -71,13 +77,24 @@ int vm_run(
 
     def attack(self, character: Character):
         print("attack")
+        for player in self.players:
+            if character.can_interact(player.character.vm_char.x, player.character.vm_char.y):
+                print(f"attack player {player.id}")
+            for fork in player.forks:
+                if character.can_interact(fork.vm_char.x, fork.vm_char.y):
+                    print(f"attack player {player.id} fork")            
         pass
 
     def interact(self, character: Character):
         print("interact")
+        for chest in self.chests:
+            if character.can_interact(chest.vm_chest.x, chest.vm_chest.y):
+                print("interact chest")
+
         pass
 
     def fork(self, character: Character, player: Player):
+        player.forks.append(Character(character.vm_char.x, character.vm_char.y, True))
         print("fork")
         pass
 
