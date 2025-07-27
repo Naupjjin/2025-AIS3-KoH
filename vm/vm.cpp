@@ -65,7 +65,7 @@ void check_opcode_format(const std::vector<std::vector<std::string>>& opcode_lis
         {"and", 2},
         {"or", 2},
         {"ng", 1},
-        {"ret", 0},
+        {"ret", 1},
         {"load_score", 1},
         {"get_id", 1},
         {"locate_nearest_k_chest", 2},
@@ -250,8 +250,25 @@ int execute_opcode(
             write_mem(a, ~read_mem(a));
         }
         else if (op == "ret") {
-            // ret (end)
-            return 0; 
+            /* 
+            -1 vm_run error
+            ops:
+            0 stop
+            1 up
+            2 down
+            3 left
+            4 right
+            5 interact
+            6 attack
+            7 fork
+
+            others –> 0
+            */
+
+            int dst = std::stoi(tokens[1]);
+            int ret = read_mem(dst);
+
+            return ret; 
         }
         else if (op == "load_score") {
             // load_score <mem1>
@@ -297,7 +314,12 @@ int execute_opcode(
             unsigned int k = std::stoi(tokens[1]);
             int mem_base = std::stoi(tokens[2]);
 
-            if (k >= (unsigned int)player_count) return -1;
+            if (k >= (unsigned int)player_count) {
+                write_mem(mem_base, -1);
+                write_mem(mem_base + 1, -1);
+                write_mem(mem_base + 2, -1);
+                continue;
+            }
 
             struct Entry {
                 int x, y, dist, idx;
@@ -363,18 +385,33 @@ extern "C" int vm_run(
     std::vector<std::vector<std::string>> instructions;
     std::unordered_map<std::string, int> labels;
 
-    parse_opcode(opcode_cstr, instructions, labels);
     try {
+        parse_opcode(opcode_cstr, instructions, labels);
         check_opcode_format(instructions);
     } catch (const std::runtime_error& e) {
-        std::cerr << "Opcode format error: " << e.what() << "\n";
+        std::cerr << "[vm_run error] error: " << e.what() << "\n";
+        return -1;
     }
     
-    execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
+    /*
+    -1 vm_run error
+    ops:
+    0 stop
+    1 up
+    2 down
+    3 left
+    4 right
+    5 interact
+    6 attack
+    7 fork
+
+    others –> 0
+    */
+    int ret = execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
+    if (ret < -1 || ret > 7) ret = 0;
 
 
-
-    return 0;
+    return ret;
 }
 
 
@@ -407,10 +444,10 @@ int main() {
         addc 0 100;
         addc 1 23;
         mulc 1 2;
-        addc 1 54;
+        addc 1 51;
         load_score 5;
         get_id 6;
-        locate_nearest_k_chest 0 7;
+        locate_nearest_k_chest 4 7;
         locate_nearest_k_chest 1 9;
         locate_nearest_k_chest 2 11;
         locate_nearest_k_character 0, 15;
@@ -418,10 +455,12 @@ int main() {
         locate_nearest_k_character 2, 21;
         je 0 1 label_1;
         addc 2 9999;
-        ret;
+        addc 30 1;
+        ret 30;
         label_1;
         addc 3 777;
-        ret;
+        addc 30 2;
+        ret 30;
     )";
     int scores = 100;
     int team_id = 7;
