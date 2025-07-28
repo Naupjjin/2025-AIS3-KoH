@@ -3,7 +3,7 @@ import psycopg2
 
 app = Flask(__name__)
 
-@app.route("/admin")
+@app.route("/")
 def simulate():
     return ""
 
