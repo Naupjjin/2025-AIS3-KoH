@@ -1,5 +1,5 @@
 from flask import Flask
-import simulator
+from simulator.simulator import simulator
 import psycopg2
 
 app = Flask(__name__)
