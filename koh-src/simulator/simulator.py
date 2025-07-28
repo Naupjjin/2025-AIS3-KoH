@@ -94,7 +94,7 @@ class Simulator:
         self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
-        for i in range(1, self.team_nums + 1):
+        for i in range(1, self.team_num + 1):
             self.players.append(Player(i, ""))
         pass
 
@@ -250,7 +250,7 @@ class Simulator:
     
 if __name__ == "__main__":
     sim = Simulator(1)
-    sim.read_map("maps/linux.txt")
+    sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
     add 0 #1;
     je 0 #1 label_down;
