@@ -58,6 +58,12 @@ TASK3_SCORE = 10
 TASK4_SCORE = 10
 
 
+PATH = 0
+WALL = 1
+CHEST = 2
+CHARACTER = 4
+
+
 class Simulator:
     players: list[Player]
     chests: list[Chest]
@@ -94,7 +100,7 @@ int vm_run(
     
     def move(self, player: Player, character: Character, dx:int, dy:int):
         rx = character.vm_char.x + dx
-        ry = character.vm_char.x + dy
+        ry = character.vm_char.y + dy
         if rx >= 0 and rx < 200 and ry >= 0 and ry < 200:
             if self.map[ry][rx] == 0:
                 character.vm_char.x = rx
@@ -115,7 +121,7 @@ int vm_run(
                     fork.health -= 1
         
 
-    def interact(self, character: Character):
+    def interact(self, player: Player, character: Character):
         print("interact")
         for chest in self.chests:
             if character.can_interact(chest.vm_chest.x, chest.vm_chest.y):
@@ -199,6 +205,15 @@ if __name__ == "__main__":
     sim = Simulator(1)
     sim.read_map("maps/linux.txt")
     sim.players[0].script = '''
+add 0 #1;
+mov 1 #2;
+mov 2 #4;
+mov 3 #1;
+mov 4 #3;
+mov 5 0;
+mov 6 5;
+ret 6;
+
 
 '''
     for i in range(200):
