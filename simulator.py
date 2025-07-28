@@ -231,7 +231,7 @@ if __name__ == "__main__":
     sim.players[0].script = '''
 
 '''
-    for i in range(5):
+    for i in range(200):
         sim.simulate()
-        sim.debug(i)
+        #sim.debug(i)
         
