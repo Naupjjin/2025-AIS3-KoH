@@ -111,6 +111,10 @@ int execute_opcode(
     int pc = 0;
     auto start_time = std::chrono::steady_clock::now(); 
 
+    int chest_call_count = 0;
+    int character_call_count = 0;
+    int CHEST_CHARACTER_CALL_LIMIT = 5;
+
     auto read_mem = [&](int addr) -> unsigned int {
         if (addr < 0 || addr >= buffer_size) {
             throw std::runtime_error("Memory read out of bounds");
@@ -198,6 +202,8 @@ int execute_opcode(
 
         // mem2[0], mem2[1], mem2[2] = character[k].is_fork, character[k].xy
         locate_nearest_k_character k <mem2>
+
+        locate_nearest_k_chest + locate_nearest_k_character call limit == 5
 
 
         ; Separate opcodes
@@ -316,6 +322,13 @@ int execute_opcode(
                 write_mem(mem_base + 1, -1);
                 continue;
             }
+
+            chest_call_count++;
+            if (chest_call_count + character_call_count > CHEST_CHARACTER_CALL_LIMIT) {
+                write_mem(mem_base, -1);
+                write_mem(mem_base + 1, -1);
+                continue;
+            }
         
             struct Entry {
                 int x, y, dist, idx;
@@ -340,7 +353,16 @@ int execute_opcode(
             unsigned int k = std::stoi(tokens[1]);
             int mem_base = std::stoi(tokens[2]);
 
+
             if (k >= (unsigned int)player_count) {
+                write_mem(mem_base, -1);
+                write_mem(mem_base + 1, -1);
+                write_mem(mem_base + 2, -1);
+                continue;
+            }
+
+            character_call_count++;
+            if (chest_call_count + character_call_count > CHEST_CHARACTER_CALL_LIMIT) {
                 write_mem(mem_base, -1);
                 write_mem(mem_base + 1, -1);
                 write_mem(mem_base + 2, -1);
@@ -474,15 +496,11 @@ int main() {
     int chest_count = sizeof(chests) / sizeof(chests[0]);
 
     const char* opcode = R"(
-        add 0 #26;
-        add 1 #456;
-        sub 1 #430;
-        add 1000, #100;
         locate_nearest_k_character 1 2;
-        je 0 #1 label_2;
-        label_1;
-        ret #3;
-        label_2;
+        locate_nearest_k_character 1 5;
+        locate_nearest_k_chest 1 8;
+        locate_nearest_k_chest 1 10;
+        locate_nearest_k_chest 1 12;
         ret #1;
 
     )";
