@@ -73,14 +73,14 @@ class Simulator:
     def __init__(self, team_nums):
         self.vm = CDLL('./vm.lib')
         '''
-int vm_run(
-    int team_id,
-    const char opcode_cstr[],
-    unsigned int* buffer,
-    VM_Character** players, int player_count,
-    VM_Chest** chests, int chest_count,
-    int scores, VM_Character* self
-);
+        int vm_run(
+            int team_id,
+            const char opcode_cstr[],
+            unsigned int* buffer,
+            VM_Character** players, int player_count,
+            VM_Chest** chests, int chest_count,
+            int scores, VM_Character* self
+        );
         '''
         self.vm.vm_run.argtypes = [c_int, c_char_p, POINTER(c_uint),
                                     POINTER(POINTER(VM_Character)), c_int,
@@ -252,21 +252,21 @@ if __name__ == "__main__":
     sim = Simulator(1)
     sim.read_map("maps/linux.txt")
     sim.players[0].script = '''
-add 0 #1;
-je 0 #1 label_down;
-je 0 #2 label_right;
-je 0 #3 label_up;
-je 0 #4 label_left;
-label_down;
-ret #2;
-label_right;
-ret #4;
-label_up;
-ret #1;
-label_left;
-ret #3;
-'''
-    for i in range(200):
+    add 0 #1;
+    je 0 #1 label_down;
+    je 0 #2 label_right;
+    je 0 #3 label_up;
+    je 0 #4 label_left;
+    label_down;
+    ret #2;
+    label_right;
+    ret #4;
+    label_up;
+    ret #1;
+    label_left;
+    ret #3;
+    '''
+    for i in range(4):
         sim.simulate()
-        #sim.debug(i)
+        sim.debug(i)
         
