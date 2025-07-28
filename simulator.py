@@ -170,13 +170,13 @@ int vm_run(
         for player, character, opcode in character_opcode:
             match opcode:
                 case 1:
-                    self.move(player, character, 0, 1)
-                case 2:
                     self.move(player, character, 0, -1)
+                case 2:
+                    self.move(player, character, 0, 1)
                 case 3:
-                    self.move(player, character, 1, 0)
-                case 4:
                     self.move(player, character, -1, 0)
+                case 4:
+                    self.move(player, character, 1, 0)
                 case 5:
                     self.interact(player, character)
                 case 6:
@@ -201,20 +201,48 @@ int vm_run(
 
         return
     
+    def debug(self, n_turn):
+        print(f"=== Turn {n_turn} ===")
+        debug_map = [['#' if self.map[y][x] else '.' for x in range(200)] for y in range(200)]
+
+        for player in self.players:
+            for i, fork in enumerate(player.forks):
+                x = fork.vm_char.x
+                y = fork.vm_char.y
+                if 0 <= x < 200 and 0 <= y < 200:
+                    if fork.is_fork:
+                        debug_map[y][x] = chr(ord('a') + ((player.id - 1) % 26))  # 分身：小寫
+                    else:
+                        debug_map[y][x] = chr(ord('A') + ((player.id - 1) % 26))  # 主體：大寫
+
+        for chest in self.chests:
+            x = chest.vm_chest.x
+            y = chest.vm_chest.y
+            if 0 <= x < 200 and 0 <= y < 200:
+                debug_map[y][x] = '$'
+
+        for row in debug_map:
+            print(''.join(row))
+
+    
 if __name__ == "__main__":
     sim = Simulator(1)
     sim.read_map("maps/linux.txt")
     sim.players[0].script = '''
 add 0 #1;
-mov 1 #2;
-mov 2 #4;
-mov 3 #1;
-mov 4 #3;
-mov 5 0;
-mov 6 5;
-ret 6;
-
-
+je 0 #1 label_down;
+je 0 #2 label_right;
+je 0 #3 label_up;
+je 0 #4 label_left;
+label_down;
+ret #2;
+label_right;
+ret #4;
+label_up;
+ret #1;
+label_left;
+ret #3;
 '''
     for i in range(200):
         sim.simulate()
+        
