@@ -29,6 +29,7 @@ class Character:
         self.selfbuf = (c_uint * 8)()
         self.health = 3
         self.is_fork = is_fork
+        self.move_to = None
         self.last_attackers: set[Player] = {}
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
@@ -103,10 +104,8 @@ int vm_run(
         ry = character.vm_char.y + dy
         if rx >= 0 and rx < 200 and ry >= 0 and ry < 200:
             if self.map[ry][rx] == 0:
-                character.vm_char.x = rx
-                character.vm_char.y = ry
                 player.score += MOVE_SCORE
-                print(f"move to {character.vm_char.x} {character.vm_char.y}")
+                character.move_to = (rx, ry)
 
     def attack(self, player: Player, character: Character):
         print("attack")
@@ -186,6 +185,10 @@ int vm_run(
         # remove dead characters
         for player in self.players:
             for fork in player.forks:
+                if fork.move_to != None:
+                    fork.vm_char.x, fork.vm_char.y = fork.move_to
+                    print(f"move to {fork.vm_char.x} {fork.vm_char.y}")
+                    fork.move_to = None
                 if fork.health <= 0:
                     if fork.is_fork:
                         for attacker in fork.last_attackers:
@@ -229,7 +232,19 @@ if __name__ == "__main__":
     sim = Simulator(1)
     sim.read_map("maps/linux.txt")
     sim.players[0].script = '''
-
+add 0 #1;
+je 0 #1 label_down;
+je 0 #2 label_right;
+je 0 #3 label_up;
+je 0 #4 label_left;
+label_down;
+ret #2;
+label_right;
+ret #4;
+label_up;
+ret #1;
+label_left;
+ret #3;
 '''
     for i in range(200):
         sim.simulate()
