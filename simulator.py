@@ -70,7 +70,7 @@ CHARACTER = 4
 class Simulator:
     players: list[Player]
     chests: list[Chest]
-    def __init__(self, team_nums):
+    def __init__(self, team_num):
         self.vm = CDLL('./vm.lib')
         '''
 int vm_run(
@@ -86,7 +86,7 @@ int vm_run(
                                     POINTER(POINTER(VM_Character)), c_int,
                                     POINTER(POINTER(VM_Chest)), c_int, c_int, POINTER(VM_Character)]
         self.vm.vm_run.restype = c_int
-        self.team_num = team_nums
+        self.team_num = team_num
         self.new_round()
         return
     def new_round(self):
@@ -94,7 +94,7 @@ int vm_run(
         self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
-        for i in range(1, self.team_nums + 1):
+        for i in range(1, self.team_num + 1):
             self.players.append(Player(i, ""))
         pass
 
@@ -179,6 +179,19 @@ int vm_run(
                 id = player.id
                 if fork.is_fork:
                     id = 0
+
+                # # fill information
+                player.buffer.tmp[0] = id
+                dx = [0, 1, 1, 1, 0, -1, -1, -1]
+                dy = [-1, -1, 0, 1, 1, 1, 0, -1]
+                for i in range(8):
+                    x = fork.vm_char.x + dx[i]
+                    y = fork.vm_char.y + dy[i]
+                    if x < 0 or x >= 200 or y < 0 or y >= 200:
+                        player.buffer.tmp[i + 1] = WALL
+                    else:
+                        player.buffer.tmp[i + 1] = self.turnmap[y][x]
+                    
 
                 opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                         characters, character_num,
