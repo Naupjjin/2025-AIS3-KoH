@@ -1,5 +1,7 @@
 from ctypes import *
-import os
+import glob
+import random
+import copy
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -84,13 +86,21 @@ int vm_run(
                                     POINTER(POINTER(VM_Character)), c_int,
                                     POINTER(POINTER(VM_Chest)), c_int, c_int, POINTER(VM_Character)]
         self.vm.vm_run.restype = c_int
+        self.team_num = team_nums
+        self.new_round()
+        return
+    def new_round(self):
+        maps = glob.glob("maps/*.txt")
+        self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
-        self.map = [[0 for i in range(200)] for j in range(200)]
-        for i in range(1, team_nums + 1):
+        for i in range(1, self.team_nums + 1):
             self.players.append(Player(i, ""))
-        return
+        pass
+
     def read_map(self, map: str):
+        self.map = [[0 for i in range(200)] for j in range(200)]
+        self.turnmap = copy.deepcopy(self.map)
         m = open(map, "r").read()
         i = 0
         for line in m.splitlines():
@@ -138,7 +148,17 @@ int vm_run(
 
     def simulate(self):
         character_num = 0
+        self.turnmap = copy.deepcopy(self.map)
+        # fill map data
+        for chest in self.chests:
+            self.turnmap[chest.vm_chest.y][chest.vm_chest.x] |= CHEST
+
+        for player in self.players:
+            for fork in player.forks:
+                self.turnmap[fork.vm_char.y][fork.vm_char.x] |= CHARACTER
+
         # count total character number
+
         for player in self.players:    
             character_num += len(player.forks)
 
