@@ -1,4 +1,5 @@
 from ctypes import *
+import os
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -27,6 +28,8 @@ class Character:
         self.vm_char = VM_Character(x, y, is_fork)
         self.selfbuf = (c_uint * 8)()
         self.health = 3
+        self.is_fork = is_fork
+        self.last_attackers: set[Player] = {}
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
         self_y = self.vm_char.y
@@ -39,12 +42,21 @@ class Player:
     forks: list[Character]
     def __init__(self, id: int, script: str):
         self.id = id
-        self.character = Character(0, 0, False)
         self.buffer = VM_Buffer()
         self.script = script
-        self.forks = []
+        self.forks = [Character(0, 0, False)]
         self.score = 0
+        self.fork_cost = 10
         pass
+
+
+MOVE_SCORE = 1
+KILL_FORK_SCORE = 50
+TASK1_SCORE = 10
+TASK2_SCORE = 10
+TASK3_SCORE = 10
+TASK4_SCORE = 10
+
 
 class Simulator:
     players: list[Player]
@@ -67,31 +79,40 @@ int vm_run(
         self.vm.vm_run.restype = c_int
         self.players = []
         self.chests = []
+        self.map = [[0 for i in range(200)] for j in range(200)]
         for i in range(1, team_nums + 1):
             self.players.append(Player(i, ""))
         return
+    def read_map(self, map: str):
+        m = open(map, "r").read()
+        i = 0
+        for line in m.splitlines():
+            for j in range(200):
+                if line[j] == '#':
+                    self.map[i][j] = 1
+            i += 1
     
-    def move(self, character: Character, dx:int, dy:int):
-        character.vm_char.x += dx
-        character.vm_char.y += dy
-        print(f"move to {character.vm_char.x} {character.vm_char.y}")
+    def move(self, player: Player, character: Character, dx:int, dy:int):
+        rx = character.vm_char.x + dx
+        ry = character.vm_char.x + dy
+        if rx >= 0 and rx < 200 and ry >= 0 and ry < 200:
+            if self.map[ry][rx] == 0:
+                character.vm_char.x = rx
+                character.vm_char.y = ry
+                player.score += MOVE_SCORE
+                print(f"move to {character.vm_char.x} {character.vm_char.y}")
 
-    def attack(self, character: Character):
+    def attack(self, player: Player, character: Character):
         print("attack")
-        for player in self.players:
-            if character.can_interact(player.character.vm_char.x, player.character.vm_char.y):
-                print(f"attack player {player.id}")
-                player.character.health -= 1
-                if player.character.health <= 0:
-                    #add score
-                    pass
-            for fork in player.forks:
+        for p in self.players:
+            for fork in p.forks:
                 if character.can_interact(fork.vm_char.x, fork.vm_char.y):
-                    print(f"attack player {player.id} fork")     
+                    if character.is_fork:
+                        print(f"attack player {p.id}")
+                    else:
+                        print(f"attack player {p.id} fork")    
+                    fork.last_attackers.add(player)
                     fork.health -= 1
-                    if fork.health <= 0:
-                        #add score
-                        pass       
         
 
     def interact(self, character: Character):
@@ -102,44 +123,39 @@ int vm_run(
 
         pass
 
-    def fork(self, character: Character, player: Player):
-        player.forks.append(Character(character.vm_char.x, character.vm_char.y, True))
-        print("fork")
+    def fork(self, player: Player, character: Character):
+        if player.score >= player.fork_cost:
+            player.forks.append(Character(character.vm_char.x, character.vm_char.y, True))
+            player.score -= player.fork_cost
+            player.fork_cost *= 2
+            print("fork")
         pass
 
     def simulate(self):
         character_num = 0
-        for player in self.players:
-            character_num += 1
-            for _ in player.forks:
-                character_num += 1
+        # count total character number
+        for player in self.players:    
+            character_num += len(player.forks)
 
         characters = (POINTER(VM_Character) * character_num)()
         chests = (POINTER(VM_Chest) * len(self.chests))()
         i = 0
         for player in self.players:
-            characters[i] = pointer(player.character.vm_char)
-            i += 1
             for fork in player.forks:
                 characters[i] = pointer(fork.vm_char)
+                i += 1
 
         # record results
         character_opcode = []
         for player in self.players:
-
-            memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
-            memmove(player.buffer.self, player.character.selfbuf, 8 * sizeof(c_uint))
-
-            opcode = self.vm.vm_run(player.id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
-                        characters, character_num,
-                        chests, len(self.chests), player.score, player.character.vm_char)
-            memmove(player.character.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
-            character_opcode.append((player, player.character, opcode))
             for fork in player.forks:
                 memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
                 memmove(player.buffer.self, fork.selfbuf, 8 * sizeof(c_uint))
+                id = player.id
+                if fork.is_fork:
+                    id = 0
 
-                opcode = self.vm.vm_run(0, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
+                opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                         characters, character_num,
                         chests, len(self.chests), player.score, fork.vm_char)
                 memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
@@ -148,31 +164,40 @@ int vm_run(
         for player, character, opcode in character_opcode:
             match opcode:
                 case 1:
-                    self.move(character, 0, 1)
+                    self.move(player, character, 0, 1)
                 case 2:
-                    self.move(character, 0, -1)
+                    self.move(player, character, 0, -1)
                 case 3:
-                    self.move(character, 1, 0)
+                    self.move(player, character, 1, 0)
                 case 4:
-                    self.move(character, -1, 0)
+                    self.move(player, character, -1, 0)
                 case 5:
-                    self.interact(character)
+                    self.interact(player, character)
                 case 6:
-                    self.attack(character)
+                    self.attack(player, character)
                 case 7:
-                    self.fork(character, player)
+                    self.fork(player, character)
         # remove dead characters
         for player in self.players:
-            if player.character.health <= 0:
-                #dead
-                pass
             for fork in player.forks:
                 if fork.health <= 0:
-                    player.forks.remove(fork)
+                    if fork.is_fork:
+                        for attacker in fork.last_attackers:
+                            attacker.score += KILL_FORK_SCORE
+                        player.forks.remove(fork)
+                    else:
+                        for attacker in player.character.last_attackers:
+                            attacker.score += player.score // 3
+                        player.score -= player.score // 3
+                        #respawn
+                fork.last_attackers.clear()
+
+
         return
     
 if __name__ == "__main__":
     sim = Simulator(1)
+    sim.read_map("maps/linux.txt")
     sim.players[0].script = '''
 
 '''
