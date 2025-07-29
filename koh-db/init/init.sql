@@ -24,11 +24,12 @@ CREATE TABLE scores (
 
 -- stores scripts
 
-CREATE TABLE Script (
-    id SERIAL PRIMARY KEY,
-    content TEXT,
-    teamid INT REFERENCES Team(id),
-    upload_time DATE
+CREATE TABLE scripts (
+    round INTEGER NOT NULL,
+    teamid INT NOT NULL,
+    scripts TEXT NOT NULL,
+    upload_time TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Taipei'),
+    PRIMARY KEY (round, teamid)
 );
 
 
