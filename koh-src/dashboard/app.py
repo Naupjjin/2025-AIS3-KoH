@@ -179,11 +179,17 @@ def rules():
 def uploads():
     latest_script = None
     latest_time = None
+
+    MAX_SIZE = 100 * 1024
     if request.method == "POST":
         file = request.files.get("file")
         if file:
             try:
-                file_content = file.read().decode("utf-8", errors="ignore")
+                content = file.read()
+                if len(content) > MAX_SIZE:
+                    return "File too large! Maximum 100 KB allowed.", 400
+                    
+                file_content = content.decode("utf-8", errors="ignore")
 
                 conn = get_connection()
                 cur = conn.cursor()
@@ -254,5 +260,5 @@ def new_round():
 
 if __name__ == "__main__":
     init_token_table()
-#    test_generate_random_game_scores()
+    test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=True)
