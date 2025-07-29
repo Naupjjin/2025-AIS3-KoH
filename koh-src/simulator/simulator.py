@@ -3,6 +3,7 @@ import glob
 import random
 import copy
 import concurrent.futures
+import json
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -25,6 +26,7 @@ class Chest:
 
     def interact():
         return
+    
     
 class Character:
     def __init__(self, x: int, y :int, is_fork: bool):
@@ -52,6 +54,20 @@ class Player:
         self.score = 0
         self.fork_cost = 10
         pass
+class Record:
+    team_num: int
+    spawn_x: int
+    spawn_y: int
+    spawn_turn: int
+    dead_turn: int = -1
+    opcodes: list[int]
+    def __init__(self, team_num, spawn_x, spawn_y, spawn_turn):
+        self.team_num = team_num
+        self.spawn_x = spawn_x
+        self.spawn_y = spawn_y
+        self.spawn_turn = spawn_turn
+        self.opcodes = []
+        pass
 
 
 MOVE_SCORE = 1
@@ -71,6 +87,8 @@ CHARACTER = 4
 class Simulator:
     players: list[Player]
     chests: list[Chest]
+    records: dict[Character, Record]
+    turn: int = 0
     def __init__(self, team_num):
         self.vm = CDLL('./vm.lib')
         '''
@@ -102,8 +120,25 @@ class Simulator:
         self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
+        self.records = {}
+        self.chest_records = []
+        for i in range(10):
+            new_chest = Chest(random.randrange(0, 200), random.randrange(0, 200))
+            self.chests.append(new_chest)
+            self.chest_records.append({
+                "x": new_chest.vm_chest.x,
+                "y": new_chest.vm_chest.y,
+                "spawn_turn": self.turn,
+                "dead_turn": -1
+            })
+
         for i in range(1, self.team_num + 1):
-            self.players.append(Player(i, ""))
+            new_player = Player(i, "")
+            self.players.append(new_player)
+            player_char = new_player.forks[0]
+            player_char.vm_char.x = random.randrange(0, 200)
+            player_char.vm_char.y = random.randrange(0, 200)
+            self.records[player_char] = Record(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
         pass
 
     def read_map(self, map: str):
@@ -158,11 +193,29 @@ class Simulator:
             print("exceeds fork limit")
             return 
         if player.score >= player.fork_cost:
-            player.forks.append(Character(character.vm_char.x, character.vm_char.y, True))
+            new_char = Character(character.vm_char.x, character.vm_char.y, True)
+            player.forks.append(new_char)
             player.score -= player.fork_cost
             player.fork_cost *= 2
+            self.records[new_char] = Record(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
             print("fork")
         return
+    
+    def dump_records(self):
+        records = {}
+        for key, value in self.records.items():
+            if value.team_num not in records:
+                records[value.team_num] = []
+            records[value.team_num].append({
+                "opcodes": ''.join(str(i) for i in value.opcodes),
+                "spawn_x": value.spawn_x,
+                "spawn_y": value.spawn_y,
+                "spawn_turn": value.spawn_turn,
+                "dead_turn": value.dead_turn,
+                "is_fork": key.is_fork
+            })
+        return json.dumps(records)
+
 
     def simulate(self):
         character_num = 0
@@ -192,6 +245,7 @@ class Simulator:
         character_opcode = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.players)) as executor:
             def execute_vm(player: Player):
+                result_list = []
                 for fork in player.forks:
                     memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
                     memmove(player.buffer.self, fork.selfbuf, 8 * sizeof(c_uint))
@@ -213,14 +267,16 @@ class Simulator:
                             characters, character_num,
                             chests, len(self.chests), player.score, fork.vm_char)
                     memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
-                    return (player, fork, opcode)
+                    result_list.append((player, fork, opcode))
+                return result_list
             jobs:list[concurrent.futures.Future] = []
             for player in self.players:
                 jobs.append(executor.submit(execute_vm, player))
             for job in jobs:
-                character_opcode.append(job.result())
+                character_opcode += job.result()
         # do operations
         for player, character, opcode in character_opcode:
+            self.records[character].opcodes.append(opcode)
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
@@ -248,6 +304,7 @@ class Simulator:
                         for attacker in fork.last_attackers:
                             attacker.score += KILL_FORK_SCORE
                         player.forks.remove(fork)
+                        self.records[fork].dead_turn = self.turn
                     else:
                         for attacker in player.character.last_attackers:
                             attacker.score += player.score // 3
@@ -255,7 +312,7 @@ class Simulator:
                         #respawn
                 fork.last_attackers.clear()
 
-
+        self.turn += 1
         return
     
     def debug(self, n_turn):
@@ -283,10 +340,12 @@ class Simulator:
 
     
 if __name__ == "__main__":
-    sim = Simulator(5)
+    sim = Simulator(4)
     sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
+load_score 1
 add 0 #1
+je 1 #10 fork
 je 0 #1 label_down
 je 0 #2 label_right
 je 0 #3 label_up
@@ -298,25 +357,14 @@ ret #4
 label_up:
 ret #1
 label_left:
+mov 0 2
 ret #3
-    '''
-sim.players[1].script = '''
-add 0 #1
-je 0 #1 label_down
-je 0 #2 label_right
-je 0 #3 label_up
-je 0 #4 label_left
-label_down:
-ret #2
-label_right:
-ret #4
-label_up:
-ret #1
-label_left:
-ret #3
+fork:
+    ret #7
     '''
 
-for i in range(10):
+for i in range(25):
        sim.simulate()
         #sim.debug(i)
-        
+
+print(sim.dump_records())
