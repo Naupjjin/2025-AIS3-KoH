@@ -59,11 +59,11 @@ def admin_panel():
     return "you are admin"
 
 @app.route("/game_scoreboard")
-def admin_panel(): 
+def game_scoreboard(): 
     return "This is game scoreboard"
 
 @app.route("/scoreboard")
-def admin_panel(): 
+def scoreboard(): 
     return "This is scoreboard"
 
 @app.route("/uploads")
