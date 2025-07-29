@@ -55,10 +55,13 @@ struct Instruction{
     unsigned int arg2;
 };
 
+bool vm_parse_script(
+    const char script[]
+);
 
 int vm_run(
     int team_id,
-    const char opcode_cstr[],
+    const char script_cstr[],
     unsigned int* buffer,
     VM_Character** players, int player_count,
     VM_Chest** chests, int chest_count,

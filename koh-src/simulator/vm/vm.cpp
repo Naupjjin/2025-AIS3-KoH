@@ -616,6 +616,13 @@ void debug_print_parsed(
     }
 }
 
+extern "C" bool vm_parse_script(
+    const char script[]
+){
+    std::vector<Instruction> instructions;
+    return parse_opcode(std::string(script), instructions);
+}
+
 extern "C" int vm_run(
     int team_id,
     const char opcode_cstr[],

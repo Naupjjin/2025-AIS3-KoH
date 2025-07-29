@@ -87,6 +87,13 @@ class Simulator:
                                     POINTER(POINTER(VM_Character)), c_int,
                                     POINTER(POINTER(VM_Chest)), c_int, c_int, POINTER(VM_Character)]
         self.vm.vm_run.restype = c_int
+        '''
+        bool vm_parse_script(
+            const char script[]
+        );
+        '''
+        self.vm.vm_parse_script.argtypes = [c_char_p]
+        self.vm.vm_parse_script.restype = c_bool
         self.team_num = team_num
         self.new_round()
         return
@@ -109,6 +116,13 @@ class Simulator:
                 if line[j] == '#':
                     self.map[i][j] = 1
             i += 1
+    def set_script(self, id: int, script: str):
+        if id > len(self.players):
+            return
+        self.players[id - 1].script = script
+    
+    def check_script(self, script: str):
+        return self.vm.vm_parse_script(script.encode())
     
     def move(self, player: Player, character: Character, dx:int, dy:int):
         rx = character.vm_char.x + dx
