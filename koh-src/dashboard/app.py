@@ -58,6 +58,28 @@ def admin_panel():
         return redirect(url_for("user_panel"))    
     return "you are admin"
 
+@app.route("/scoreboard")
+def admin_panel(): 
+    return "This is scoreboard"
+
+@app.route("/uploads")
+def uploads():
+
+    return "This is uploads"
+
+@app.route("/result/<int:round_num>")
+def get_result(round_num):
+
+    return f"/result : now round : {round_num}"
+
+@app.route("/simulator/<int:round_num>")
+def simulator(round_num):
+    return f"/simulator : now round : {round_num}"
+
+@app.route("/new_round")
+def new_round():
+    return "new round"
+
 if __name__ == "__main__":
     init_token_table()
     app.run(host="0.0.0.0", port=48763, debug=True)
