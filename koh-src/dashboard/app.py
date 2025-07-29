@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 import hashlib
 import os
-from db import get_connection, init_token_table
+from db import get_connection, init_token_table, test_generate_random_game_scores
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -90,4 +90,6 @@ def new_round():
 
 if __name__ == "__main__":
     init_token_table()
+
+    test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=True)
