@@ -81,6 +81,28 @@ def update_score_for_round(round_number: int):
     cur.close()
     conn.close()
 
+def init_team_scripts():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT team_id FROM teams WHERE is_admin = FALSE")
+    team_ids = [row[0] for row in cur.fetchall()]
+
+    for team_id in team_ids:
+        cur.execute(
+            """
+            INSERT INTO scripts (round, teamid, scripts)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (round, teamid)
+            DO UPDATE SET scripts = EXCLUDED.scripts,
+                          upload_time = CURRENT_TIMESTAMP
+            """,
+            (1, team_id, "ret #0")
+        )
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 ## just test
 def test_generate_random_game_scores():

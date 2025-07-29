@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, session, url_for, f
 import hashlib
 import os
 from functools import wraps
-from db import get_connection, init_token_table, test_generate_random_game_scores
+from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -289,5 +289,6 @@ def round_pending(round_num):
 
 if __name__ == "__main__":
     init_token_table()
+    init_team_scripts()
     test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=True)
