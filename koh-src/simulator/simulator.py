@@ -2,6 +2,7 @@ from ctypes import *
 import glob
 import random
 import copy
+import concurrent.futures
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -139,12 +140,15 @@ class Simulator:
         pass
 
     def fork(self, player: Player, character: Character):
+        if len(player.forks) >= 4:
+            print("exceeds fork limit")
+            return 
         if player.score >= player.fork_cost:
             player.forks.append(Character(character.vm_char.x, character.vm_char.y, True))
             player.score -= player.fork_cost
             player.fork_cost *= 2
             print("fork")
-        pass
+        return
 
     def simulate(self):
         character_num = 0
@@ -172,32 +176,35 @@ class Simulator:
 
         # record results
         character_opcode = []
-        for player in self.players:
-            for fork in player.forks:
-                memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
-                memmove(player.buffer.self, fork.selfbuf, 8 * sizeof(c_uint))
-                id = player.id
-                if fork.is_fork:
-                    id = 0
-
-                # # fill information
-                player.buffer.tmp[0] = id
-                dx = [0, 1, 1, 1, 0, -1, -1, -1]
-                dy = [-1, -1, 0, 1, 1, 1, 0, -1]
-                for i in range(8):
-                    x = fork.vm_char.x + dx[i]
-                    y = fork.vm_char.y + dy[i]
-                    if x < 0 or x >= 200 or y < 0 or y >= 200:
-                        player.buffer.tmp[i + 1] = WALL
-                    else:
-                        player.buffer.tmp[i + 1] = self.turnmap[y][x]
-                    
-
-                opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
-                        characters, character_num,
-                        chests, len(self.chests), player.score, fork.vm_char)
-                memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
-                character_opcode.append((player, fork, opcode))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.players)) as executor:
+            def execute_vm(player: Player):
+                for fork in player.forks:
+                    memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
+                    memmove(player.buffer.self, fork.selfbuf, 8 * sizeof(c_uint))
+                    id = player.id
+                    if fork.is_fork:
+                        id = 0
+                    # # fill information
+                    player.buffer.tmp[0] = id
+                    dx = [0, 1, 1, 1, 0, -1, -1, -1]
+                    dy = [-1, -1, 0, 1, 1, 1, 0, -1]
+                    for i in range(8):
+                        x = fork.vm_char.x + dx[i]
+                        y = fork.vm_char.y + dy[i]
+                        if x < 0 or x >= 200 or y < 0 or y >= 200:
+                            player.buffer.tmp[i + 1] = WALL
+                        else:
+                            player.buffer.tmp[i + 1] = self.turnmap[y][x]
+                    opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
+                            characters, character_num,
+                            chests, len(self.chests), player.score, fork.vm_char)
+                    memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
+                    return (player, fork, opcode)
+            jobs:list[concurrent.futures.Future] = []
+            for player in self.players:
+                jobs.append(executor.submit(execute_vm, player))
+            for job in jobs:
+                character_opcode.append(job.result())
         # do operations
         for player, character, opcode in character_opcode:
             match opcode:
@@ -262,7 +269,7 @@ class Simulator:
 
     
 if __name__ == "__main__":
-    sim = Simulator(1)
+    sim = Simulator(5)
     sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
 add 0 #1
@@ -279,8 +286,23 @@ ret #1
 label_left:
 ret #3
     '''
+sim.players[1].script = '''
+add 0 #1
+je 0 #1 label_down
+je 0 #2 label_right
+je 0 #3 label_up
+je 0 #4 label_left
+label_down:
+ret #2
+label_right:
+ret #4
+label_up:
+ret #1
+label_left:
+ret #3
+    '''
 
-    for i in range(11):
+for i in range(10):
        sim.simulate()
         #sim.debug(i)
         
