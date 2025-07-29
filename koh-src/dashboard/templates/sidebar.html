@@ -1,0 +1,59 @@
+<!-- templates/sidebar.html -->
+<div class="sidebar">
+    <h3>Menu</h3>
+    <ul>
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('game_scores') }}">Game History</a></li>
+        <li><a href="{{ url_for('scoreboard') }}">Scoreboard</a></li>
+        <li><a href="{{ url_for('rules') }}">Rules</a></li>
+        <li><a href="{{ url_for('uploads') }}">Uploads</a></li>
+        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    </ul>
+</div>
+
+<style>
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 180px;
+        background-color: #222;
+        color: white;
+        padding: 20px;
+        box-sizing: border-box;
+        font-family: sans-serif;
+    }
+    .sidebar h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-weight: normal;
+    }
+    .sidebar ul {
+        list-style: none;
+        padding-left: 0;
+    }
+    .sidebar ul li {
+        margin-bottom: 12px;
+    }
+    .sidebar ul li a {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: bold;
+        display: block;
+    }
+    .sidebar ul li a:hover {
+        text-decoration: underline;
+    }
+
+    .content {
+        margin-left: 200px;
+        padding: 20px;
+        color: white;
+        font-family: sans-serif;
+    }
+    body {
+        background-color: #121212;
+        margin: 0;
+    }
+</style>
