@@ -139,7 +139,7 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
         else
         {
             PARSE_OR_FAIL(r1, get_raw_num(tokens[1]));
-            inst.arg1 = r1.value;
+            inst.arg2 = r1.value;
         }
         break;
     }
@@ -214,9 +214,15 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
     {
         if (tokens.size() < 3)
             return inst;
-        PARSE_OR_FAIL(k, get_raw_num(tokens[1]));
-        PARSE_OR_FAIL(rdst, get_raw_num(tokens[2]));
-        inst.arg1 = k.value;
+        PARSE_OR_FAIL(rdst, get_raw_num(tokens[1]));
+        if(tokens[2][0] == '#'){
+            PARSE_OR_FAIL(k, get_num(tokens[2], '#'));
+            inst.opcode |= CONST_INST;
+            inst.arg1 = k.value;
+        }else{
+            PARSE_OR_FAIL(k, get_raw_num(tokens[2]));
+            inst.arg1 = k.value;
+        }
         inst.arg2 = rdst.value;
         break;
     }
@@ -442,11 +448,13 @@ int execute_opcode(
         load_score <mem1>
         get_id <mem1>
 
-        // mem2[0], mem2[1] = chest[k].xy
-        locate_nearest_k_chest k <mem2>
+        // mem1[0], mem1[1] = chest[*mem2].xy
+        locate_nearest_k_chest <mem1> <mem2>
+        locate_nearest_k_chest <mem1> #<constant>
 
-        // mem2[0], mem2[1], mem2[2] = character[k].is_fork, character[k].xy
-        locate_nearest_k_character k <mem2>
+        // mem1[0], mem1[1], mem1[2] = character[*mem2].is_fork, character[*mem2].xy
+        locate_nearest_k_character <mem1> <mem2>
+        locate_nearest_k_character <mem1> #<constant>
 
         locate_nearest_k_chest + locate_nearest_k_character call limit == 5
 
@@ -516,7 +524,7 @@ int execute_opcode(
             write_mem(inst.arg1, ~read_mem(inst.arg1));
             break;
         case INS_RET:
-            return inst.arg2;
+            return r;
         case INS_LOAD_SCORE:
             write_mem(inst.arg1, scores);
             break;
@@ -525,8 +533,8 @@ int execute_opcode(
             break;
         case INS_LOCATE_NEAREST_CHEST:
         {
-            unsigned int k = inst.arg1;
-            int mem_base = inst.arg2;
+            int mem_base = inst.arg1;
+            unsigned int k = r;
             if (k >= (unsigned int)chest_count || chest_call_count + character_call_count >= CHEST_CHARACTER_CALL_LIMIT)
             {
                 write_mem(mem_base, -1);
@@ -555,8 +563,8 @@ int execute_opcode(
         }
         case INS_LOCATE_NEAREST_CHAR:
         {
-            unsigned int k = inst.arg1;
-            int mem_base = inst.arg2;
+            int mem_base = inst.arg1;
+            unsigned int k = r;
             if (k >= (unsigned int)player_count || chest_call_count + character_call_count >= CHEST_CHARACTER_CALL_LIMIT)
             {
                 write_mem(mem_base, -1);

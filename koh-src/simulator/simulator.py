@@ -3,7 +3,9 @@ import glob
 import random
 import copy
 import concurrent.futures
+import threading
 import json
+import time
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -343,28 +345,15 @@ if __name__ == "__main__":
     sim = Simulator(4)
     sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
-load_score 1
-add 0 #1
-je 1 #10 fork
-je 0 #1 label_down
-je 0 #2 label_right
-je 0 #3 label_up
-je 0 #4 label_left
-label_down:
-ret #2
-label_right:
-ret #4
-label_up:
-ret #1
-label_left:
-mov 0 2
-ret #3
-fork:
-    ret #7
+loop:
+    je 0 0 loop
+
     '''
+    def simulate_all(sim: Simulator):
+        for i in range(200):
+            sim.simulate()
 
-for i in range(25):
-       sim.simulate()
-        #sim.debug(i)
-
-print(sim.dump_records())
+    threading.Thread(target=simulate_all, args=[sim]).start()
+    for i in range(200):
+        print(sim.dump_records())
+        time.sleep(1)
