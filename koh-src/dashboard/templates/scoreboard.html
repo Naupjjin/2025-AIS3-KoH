@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Scoreboard</title>
+    <style>
+        body {
+            background: #121212;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 30px auto;
+            width: 90%;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border: 1px solid #444;
+            text-align: center;
+        }
+
+        th {
+            background: linear-gradient(to bottom, #333, #222);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #1e1e1e;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #181818;
+        }
+
+        td:last-child, th:last-child {
+            background-color: #2e3b4e;
+            font-weight: bold;
+        }
+
+        tbody tr:nth-child(1) {
+            background-color: #2a3f2d !important;
+        }
+
+        tbody tr:nth-child(2) {
+            background-color: #384232 !important;
+        }
+
+        tbody tr:nth-child(3) {
+            background-color: #3e3a2e !important;
+        }
+
+        td[data-score] {
+            background-color: #202020;
+        }
+
+        td[data-score]:not(:last-child):not(:first-child) {
+            transition: background-color 0.3s ease;
+        }
+
+        td[data-score-high] {
+            background-color: #2a5d36 !important;
+        }
+
+        td[data-score-low] {
+            background-color: #5d2a2a !important;
+        }
+
+        /* 自己隊伍高亮 */
+        tr.highlight {
+            outline: 2px solid #ffc107;
+            outline-offset: -2px;
+            box-shadow: 0 0 6px #ffc107aa;
+        }
+    </style>
+</head>
+<body>
+    {% include "sidebar.html" %}
+    <div class="content">
+        <h2>Scoreboard</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th class="team-id">Team ID</th>
+                    <th class="total-score">Total</th>
+                    {% for r in rounds|reverse %}
+                        <th>Round {{ r }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in scoreboard %}
+                    <tr {% if team.team_id == my_team_id %}class="highlight"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td class="team-id">{{ team.team_id }}</td>
+                        <td class="total-score" data-score>{{ team.total }}</td>
+                        {% for s in team.scores|reverse %}
+                            {% if s >= 15 %}
+                                <td data-score data-score-high>{{ s }}</td>
+                            {% elif s < 15 %}
+                                <td data-score data-score-low>{{ s }}</td>
+                            {% else %}
+                                <td data-score>{{ s }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+                      
+        </table>
+    </div>
+</body>
+</html>

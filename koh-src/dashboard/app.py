@@ -29,11 +29,24 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# 裝飾器：檢查是否為 users
+def users_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("is_admin"):
+            return redirect(url_for("admin_panel"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route("/")
-@login_required
 def home():
-    return render_template('index.html')
+    if "team_id" not in session:
+        return redirect(url_for("login"))
+
+    if session.get("is_admin"):
+        return redirect(url_for("admin_panel"))
+    else:
+        return redirect(url_for("user_panel"))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -80,7 +93,7 @@ def logout():
 def user_panel():
     if session.get("is_admin"):
         return redirect(url_for("admin_panel"))
-    return f"Welcome team {session['team_id']}! Admin: {session['is_admin']}"
+    return render_template("user_panel.html", team_id=session["team_id"])
 
 
 @app.route("/admin_panel")
@@ -113,7 +126,40 @@ def game_scores():
 @app.route("/scoreboard")
 @login_required
 def scoreboard():
-    return "This is scoreboard"
+    conn = get_connection()
+    cur = conn.cursor()
+    # 取出所有分數資料：round, team_id, scores
+    cur.execute("""
+        SELECT round, team_id, scores
+        FROM scores
+        ORDER BY round ASC, team_id ASC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    data = {}
+    rounds = set()
+    for round_num, team_id, score in rows:
+        rounds.add(round_num)
+        if team_id not in data:
+            data[team_id] = {}
+        data[team_id][round_num] = score
+
+    scoreboard = []
+    rounds = sorted(rounds)
+    for team_id, round_scores in data.items():
+        scores_list = [round_scores.get(r, 0) for r in rounds]
+        scoreboard.append({
+            'team_id': team_id,
+            'total': sum(scores_list),
+            'scores': scores_list
+        })
+
+    scoreboard.sort(key=lambda x: x['total'], reverse=True)
+    my_team_id = session.get('team_id')
+    return render_template("scoreboard.html", scoreboard=scoreboard, rounds=rounds, my_team_id=my_team_id)
+
 
 
 @app.route("/rules")
@@ -124,24 +170,28 @@ def rules():
 
 @app.route("/uploads")
 @login_required
+@users_required
 def uploads():
-    return "This is uploads"
+    return render_template("uploads.html")
 
 
 @app.route("/result/<int:round_num>")
 @login_required
+@admin_required
 def get_result(round_num):
     return f"/result : now round : {round_num}"
 
 
 @app.route("/simulator/<int:round_num>")
 @login_required
+@admin_required
 def simulator(round_num):
     return f"/simulator : now round : {round_num}"
 
 
 @app.route("/new_round")
 @login_required
+@admin_required
 def new_round():
     return "new round"
 
