@@ -18,13 +18,32 @@ class VM_Buffer(Structure):
     _fields_ = [("global", c_uint * 50), ("self", c_uint * 8), ("tmp", c_uint * 42)]
 
 class Chest:
-    def chal1() -> bool:
-        return
-    CHALS = [(chal1, 100)]
+    type:int = 0
+    score = 0
+    param = []
+    result = []
+    def reverse_chal(self):
+        self.param = [random.randint(0, 65536) for _ in range(5)]
+        self.result = self.param.reverse()
+        self.score = 30
+    def sort_chal(self):
+        self.param = [random.randint(0, 65536) for _ in range(7)]
+        self.result = copy.deepcopy(self.param)
+        self.result.sort()
+        self.score = 40
+    def rsa_chal(self):
+        self.score = 50
+        pass
+    def point_addition_chal(self):
+        self.score = 60
+        pass
+    
+    CHALS = [reverse_chal, sort_chal, rsa_chal, point_addition_chal]
 
     def __init__(self, x: int, y: int):
         self.vm_chest = VM_Chest(x, y)
-        self.chals = self.chal1
+        self.type = random.randrange(0, len(self.CHALS))
+        self.CHALS[self.type](self)
 
     def interact():
         return
@@ -74,11 +93,6 @@ class Record:
 
 MOVE_SCORE = 1
 KILL_FORK_SCORE = 50
-TASK1_SCORE = 10
-TASK2_SCORE = 10
-TASK3_SCORE = 10
-TASK4_SCORE = 10
-
 
 PATH = 0
 WALL = 1
@@ -188,7 +202,22 @@ class Simulator:
             if character.can_interact(chest.vm_chest.x, chest.vm_chest.y):
                 print("interact chest")
 
-        pass
+                # the result is store in buf[50] ~ buf[57]
+                i = 1
+                for r in chest.result:
+                    # fill param
+                    if character.selfbuf[i] != r:
+                        character.selfbuf[0] = chest.type
+                        j = 1
+                        for p in chest.param:
+                            character.selfbuf[j] = p
+                            j +=1
+                        return
+                    i += 1
+                self.chests.remove(chest)
+                player.score += chest.score
+                return
+
 
     def fork(self, player: Player, character: Character):
         if len(player.forks) >= 4:
@@ -217,7 +246,11 @@ class Simulator:
                 "is_fork": key.is_fork
             })
         return json.dumps(records)
-
+    def dump_scores(self):
+        scores = {}
+        for player in self.players:
+            scores[player.id] = player.score
+        return json.dumps(scores)
 
     def simulate(self):
         character_num = 0
@@ -349,11 +382,4 @@ loop:
     je 0 0 loop
 
     '''
-    def simulate_all(sim: Simulator):
-        for i in range(200):
-            sim.simulate()
-
-    threading.Thread(target=simulate_all, args=[sim]).start()
-    for i in range(200):
-        print(sim.dump_records())
-        time.sleep(1)
+    print(random.randrange(0,4))
