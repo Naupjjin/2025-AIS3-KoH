@@ -47,7 +47,7 @@ static stoi_result stoi(std::string_view s, int base = 10)
     {
         return {};
     }
-    return stoi_result{.value = result_num, .success = true};
+    return stoi_result{.success = true, .value = result_num};
 }
 
 unsigned int parse_immediate(std::string_view token)
