@@ -13,6 +13,7 @@ POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94
 '''
 在 pending 時候就要先切 NOW_ROUND 到下一 round
 不然會有問題
+Or this value from others placed
 '''
 NOW_ROUND = 30
 
@@ -188,7 +189,7 @@ def uploads():
                 content = file.read()
                 if len(content) > MAX_SIZE:
                     return "File too large! Maximum 100 KB allowed.", 400
-                    
+
                 file_content = content.decode("utf-8", errors="ignore")
 
                 conn = get_connection()
@@ -260,5 +261,5 @@ def new_round():
 
 if __name__ == "__main__":
     init_token_table()
-    test_generate_random_game_scores()
+#    test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=True)
