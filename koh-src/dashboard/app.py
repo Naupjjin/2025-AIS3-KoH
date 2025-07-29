@@ -14,7 +14,7 @@ POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94
 在 pending 時候就要先切 NOW_ROUND 到下一 round
 不然會有問題
 '''
-NOW_ROUND = 31
+NOW_ROUND = 30
 
 # 裝飾器：檢查是否登入
 def login_required(f):
@@ -105,7 +105,7 @@ def user_panel():
 @login_required
 @admin_required
 def admin_panel():
-    return "you are admin"
+    return render_template("admin_panel.html")
 
 
 @app.route("/game_history")
@@ -228,24 +228,29 @@ def uploads():
 
 @app.route("/result/<int:round_num>")
 @login_required
-@admin_required
 def get_result(round_num):
     return f"/result : now round : {round_num}"
 
 
-@app.route("/simulator/<int:round_num>")
+@app.route("/api/simulator/<int:round_num>")
 @login_required
 @admin_required
 def simulator(round_num):
-    return f"/simulator : now round : {round_num}"
+    return f"/simulator : simulator round : {round_num}"
 
 
-@app.route("/new_round")
+
+@app.route("/api/rejudge/<int:round_num>")
+@login_required
+@admin_required
+def rejudge(round_num):
+    return f"/rejudge : rejudge round : {round_num}"
+
+@app.route("/api/new_round")
 @login_required
 @admin_required
 def new_round():
     return "new round"
-
 
 if __name__ == "__main__":
     init_token_table()
