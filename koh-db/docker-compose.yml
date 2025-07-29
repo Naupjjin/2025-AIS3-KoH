@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: koh-db
+    restart: always
+    environment:
+      POSTGRES_USER: koh-admin
+      POSTGRES_PASSWORD: 9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2
+      POSTGRES_DB: koh-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d   
+
+volumes:
+  pgdata:

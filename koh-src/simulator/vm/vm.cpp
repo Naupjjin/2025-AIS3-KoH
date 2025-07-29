@@ -145,7 +145,7 @@ int execute_opcode(
     while (pc < (int)instructions.size()) {
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
-        if (elapsed >= 3) {
+        if (elapsed >= 1) {
             return 0;  
         }
 
