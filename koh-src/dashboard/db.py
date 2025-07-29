@@ -58,14 +58,23 @@ def update_score_for_round(round_number: int):
         "SELECT team_id, game_scores FROM game_history WHERE round = %s ORDER BY game_scores DESC",
         (round_number,)
     )
-    results = cur.fetchall()  
+    results = cur.fetchall()  # [(team_id, score), ...]
 
-    for rank, (team_id, _) in enumerate(results, start=1):
-        score = ranking_score.get(rank, 0)
+    prev_score = None
+    rank = 0      
+    real_rank = 0  
+    for i, (team_id, score) in enumerate(results, start=1):
+
+        if score != prev_score:
+            rank = i
+            prev_score = score
+
+        assign_score = ranking_score.get(rank, 0)
+
         cur.execute(
             "INSERT INTO scores (round, team_id, scores) VALUES (%s, %s, %s) "
             "ON CONFLICT (round, team_id) DO UPDATE SET scores = EXCLUDED.scores",
-            (round_number, team_id, score)
+            (round_number, team_id, assign_score)
         )
 
     conn.commit()
