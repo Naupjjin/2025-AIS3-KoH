@@ -10,6 +10,11 @@ app.secret_key = os.urandom(32)
 POSTGRES_USER = "koh-admin"
 POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2"
 
+'''
+在 pending 時候就要先切 NOW_ROUND 到下一 round
+不然會有問題
+'''
+NOW_ROUND = 31
 
 # 裝飾器：檢查是否登入
 def login_required(f):
@@ -168,11 +173,57 @@ def rules():
     return render_template("rules.html")
 
 
-@app.route("/uploads")
+@app.route("/uploads", methods=["GET", "POST"])
 @login_required
 @users_required
 def uploads():
-    return render_template("uploads.html")
+    latest_script = None
+    latest_time = None
+    if request.method == "POST":
+        file = request.files.get("file")
+        if file:
+            try:
+                file_content = file.read().decode("utf-8", errors="ignore")
+
+                conn = get_connection()
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO scripts (round, teamid, scripts)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (round, teamid)
+                    DO UPDATE SET scripts = EXCLUDED.scripts,
+                                upload_time = CURRENT_TIMESTAMP
+                    """,
+                    (NOW_ROUND, session["team_id"], file_content)
+                )
+                conn.commit()
+                cur.close()
+                conn.close()
+
+                return redirect(url_for("uploads"))
+            except:
+                return "Something Error, please check your upload scripts"
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT scripts, upload_time
+        FROM scripts
+        WHERE teamid = %s
+        ORDER BY round DESC, upload_time DESC
+        LIMIT 1
+        """,
+        (session["team_id"],)
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        latest_script, latest_time = row
+    return render_template("uploads.html", latest_script=latest_script, latest_time=latest_time)
 
 
 @app.route("/result/<int:round_num>")
