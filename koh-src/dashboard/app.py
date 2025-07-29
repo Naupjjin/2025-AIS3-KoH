@@ -1,26 +1,23 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash,  abort
 import hashlib
 import os
 from functools import wraps
 from db import get_connection, init_token_table, test_generate_random_game_scores
-import time
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
 
+API_KEY = "TOMORINISCUTETHISISAPIKEY"
+
 POSTGRES_USER = "koh-admin"
 POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2"
+PENDING = 0
 
-'''
-在 pending 時候就要先切 NOW_ROUND 到下一 round
-不然會有問題
-Or this value from others placed
-'''
 NOW_ROUND = 1
-def increment_round():
+def updates_round(num):
     global NOW_ROUND
-    NOW_ROUND += 1
-    return NOW_ROUND
+    NOW_ROUND = num
+
 
 # 裝飾器：檢查是否登入
 def login_required(f):
@@ -46,6 +43,15 @@ def users_required(f):
     def decorated_function(*args, **kwargs):
         if session.get("is_admin"):
             return redirect(url_for("admin_panel"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def api_key_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        key = request.headers.get("KOH-API-KEY")
+        if key != API_KEY:
+            abort(403)  # Forbidden
         return f(*args, **kwargs)
     return decorated_function
 
@@ -95,7 +101,9 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session.clear()
+    session.pop("team_id", None)
+    session.pop("is_admin", None)
+
     return redirect(url_for("login"))
 
 
@@ -188,6 +196,9 @@ def uploads():
 
     MAX_SIZE = 100 * 1024
     if request.method == "POST":
+        if PENDING:
+            flash("Current round is pending, uploads are disabled.", "error")
+            return redirect(url_for("user_panel"))
         file = request.files.get("file")
         if file:
             try:
@@ -245,30 +256,38 @@ def get_result(round_num):
 
 
 @app.route("/api/simulator/<int:round_num>")
-@login_required
-@admin_required
+@api_key_required
 def simulator(round_num):
     return f"/simulator : simulator round : {round_num}"
 
 
-
 @app.route("/api/rejudge/<int:round_num>")
-@login_required
-@admin_required
+@api_key_required
 def rejudge(round_num):
     return f"/rejudge : rejudge round : {round_num}"
 
-@app.route("/api/new_round/<int:round_num>")
-@login_required
-@admin_required
-def new_round(round_num):
-    ### Wait to run this round
-    time.sleep(300)
-    
+@app.route("/api/start_round/<int:round_num>")
+@api_key_required
+def round_start(round_num):
+    global PENDING
+    PENDING = 0
+    updates_round(round_num)
+
 
     return "round completed"
 
+@app.route("/api/pending/<int:round_num>")
+@api_key_required
+def round_pending(round_num):
+    global PENDING
+    PENDING = 1
+    updates_round(round_num)
+
+
+    return "round completed"
+
+
 if __name__ == "__main__":
     init_token_table()
-#    test_generate_random_game_scores()
+    test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=True)
