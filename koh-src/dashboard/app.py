@@ -42,6 +42,11 @@ def login():
         else:
             return render_template('login.html')
 
+@app.route("/logout")
+def logout():
+    session.clear()          
+    return redirect(url_for("login"))   
+
 @app.route("/user_panel")
 def user_panel():
     if "team_id" not in session:
@@ -59,11 +64,26 @@ def admin_panel():
     return "you are admin"
 
 @app.route("/game_history")
-def game_scoreboard(): 
-    return "This is game history"
+def game_scores():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT round, team_id, game_scores FROM game_history")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    matrix = {}
+    for r, t, s in data:
+        matrix.setdefault(r, {})[t] = s
+
+    rounds = sorted(matrix.keys())
+    teams = sorted({team for r in matrix.values() for team in r})
+
+    return render_template("game_history.html", matrix=matrix, rounds=rounds, teams=teams)
 
 @app.route("/scoreboard")
 def scoreboard(): 
+
     return "This is scoreboard"
 
 @app.route("/rules")
@@ -87,6 +107,8 @@ def simulator(round_num):
 @app.route("/new_round")
 def new_round():
     return "new round"
+
+
 
 if __name__ == "__main__":
     init_token_table()

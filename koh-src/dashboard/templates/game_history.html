@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Game History</title>
+    <style>
+        body {
+            background: #121212;
+            color: white;
+            font-family: sans-serif;
+        }
+        h2 {
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 30px auto;
+            width: auto;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #999;
+            text-align: center;
+        }
+        th {
+            background: #222;
+            color: white;
+        }
+        a {
+            color: #1e90ff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+    <h2>Game History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Round ↓ / Team →</th>
+                {% for team in teams %}
+                    <th>{{ team }}</th>
+                {% endfor %}
+                <th>Result</th> <!-- 新增欄位 -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for rnd in rounds %}
+                {% set row = matrix[rnd] %}
+                {% set row_scores = [] %}
+                {% for t in teams %}
+                    {% set _ = row_scores.append(row.get(t, 0)) %}
+                {% endfor %}
+                {% set max_score = row_scores|max %}
+                {% set min_score = row_scores|min %}
+                <tr>
+                    <th>{{ rnd }}</th>
+                    {% for team in teams %}
+                        {% set score = row.get(team, '') %}
+                        {% if score != '' %}
+                            {% if max_score == min_score %}
+                                {% set red = 128 %}
+                                {% set green = 255 %}
+                            {% else %}
+                                {% set percent = (score - min_score) / (max_score - min_score) %}
+                                {% set red = (1 - percent) * 255 %}
+                                {% set green = percent * 255 %}
+                            {% endif %}
+                            <td style="background-color: rgb({{ red|int }}, {{ green|int }}, 80); color: black;">
+                                {{ score }}
+                            </td>
+                        {% else %}
+                            <td style="background:#333;">–</td>
+                        {% endif %}
+                    {% endfor %}
+                    <td>
+                        <a href="{{ url_for('get_result', round_num=rnd) }}">View Result</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

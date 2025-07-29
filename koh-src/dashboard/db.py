@@ -80,7 +80,7 @@ def test_generate_random_game_scores():
     conn = get_connection()
     cur = conn.cursor()
 
-    for round_number in range(1, 5):
+    for round_number in range(1, 30):
         cur.execute("DELETE FROM game_history WHERE round = %s;", (round_number,))
 
         for team_id in range(1, 11):  # team_id: 1~10
