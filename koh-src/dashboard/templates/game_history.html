@@ -48,7 +48,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for rnd in rounds %}
+            {% for rnd in rounds|reverse %}
                 {% set row = matrix[rnd] %}
                 {% set row_scores = [] %}
                 {% for t in teams %}
