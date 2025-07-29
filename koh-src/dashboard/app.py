@@ -58,13 +58,17 @@ def admin_panel():
         return redirect(url_for("user_panel"))    
     return "you are admin"
 
-@app.route("/game_scoreboard")
+@app.route("/game_history")
 def game_scoreboard(): 
-    return "This is game scoreboard"
+    return "This is game history"
 
 @app.route("/scoreboard")
 def scoreboard(): 
     return "This is scoreboard"
+
+@app.route("/rules")
+def rules():
+    return render_template("rules.html")
 
 @app.route("/uploads")
 def uploads():

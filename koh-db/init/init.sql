@@ -6,11 +6,19 @@ CREATE TABLE IF NOT EXISTS teams (
 );
 
 
--- store all rounds each team game score
-CREATE TABLE game_scores (
+-- store all rounds each team game score history
+CREATE TABLE game_history (
     round INTEGER NOT NULL,
     team_id INTEGER NOT NULL,
     game_scores INTEGER NOT NULL,
+    PRIMARY KEY (round, team_id)
+);
+
+-- store all rounds each team scores
+CREATE TABLE scores (
+    round INTEGER NOT NULL,
+    team_id INTEGER NOT NULL,
+    scores INTEGER NOT NULL,
     PRIMARY KEY (round, team_id)
 );
 

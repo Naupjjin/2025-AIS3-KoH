@@ -23,6 +23,7 @@ def init_token_table():
         (7, '6ac6c8b1b29e6058', False),
         (8, 'c633e634a0c53770', False),
         (9, '062dd1e4b830abae', False),
+        (10, 'wearenpcyeahhhhh', False)
     ]
 
     conn = get_connection()
@@ -39,3 +40,4 @@ def init_token_table():
     conn.commit()
     cur.close()
     conn.close()
+
