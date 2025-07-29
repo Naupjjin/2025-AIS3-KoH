@@ -3,6 +3,7 @@ import hashlib
 import os
 from functools import wraps
 from db import get_connection, init_token_table, test_generate_random_game_scores
+import time
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -15,7 +16,11 @@ POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94
 不然會有問題
 Or this value from others placed
 '''
-NOW_ROUND = 30
+NOW_ROUND = 1
+def increment_round():
+    global NOW_ROUND
+    NOW_ROUND += 1
+    return NOW_ROUND
 
 # 裝飾器：檢查是否登入
 def login_required(f):
@@ -253,11 +258,15 @@ def simulator(round_num):
 def rejudge(round_num):
     return f"/rejudge : rejudge round : {round_num}"
 
-@app.route("/api/new_round")
+@app.route("/api/new_round/<int:round_num>")
 @login_required
 @admin_required
-def new_round():
-    return "new round"
+def new_round(round_num):
+    ### Wait to run this round
+    time.sleep(300)
+    
+
+    return "round completed"
 
 if __name__ == "__main__":
     init_token_table()
