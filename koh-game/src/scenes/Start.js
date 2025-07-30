@@ -4,8 +4,10 @@ const SHUTDOWN = "shutdown"
 const HOST = "http://127.0.0.1:48763"
 
 const tileSize = 32;
-const scaleFactor = 0.15;
+const scaleFactor = 0.4;
 const displayTileSize = tileSize * scaleFactor;
+const worldSize = 100 * displayTileSize;
+
 
 export class Start extends Phaser.Scene {
     characters = {};
@@ -52,7 +54,6 @@ export class Start extends Phaser.Scene {
 
         this.create_map();
 
-        const worldSize = 200 * displayTileSize;
         this.cameras.main.setBounds(0, 0, worldSize, worldSize);
 
         // 拖曳 camera
