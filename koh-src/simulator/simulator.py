@@ -9,6 +9,8 @@ import time
 import math
 import os
 
+MAP_SIZE = 50
+
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
 
@@ -162,12 +164,12 @@ class Chest:
         global last_chest_id
         self.cid = last_chest_id
         last_chest_id += 1
-        rx = random.randrange(0, 200)
-        ry = random.randrange(0, 200)
+        rx = random.randrange(0, MAP_SIZE)
+        ry = random.randrange(0, MAP_SIZE)
         if map != None:
             while map[ry][rx] == WALL:
-                rx = random.randrange(0, 200)
-                ry = random.randrange(0, 200)
+                rx = random.randrange(0, MAP_SIZE)
+                ry = random.randrange(0, MAP_SIZE)
         self.vm_chest = VM_Chest(rx, ry)
         self.type = random.randrange(1, len(self.CHALS)+1)
         self.CHALS[self.type - 1](self)
@@ -195,12 +197,12 @@ class Character:
             self.health = 2
         else:
             self.health = 3
-        rx = random.randrange(0, 200)
-        ry = random.randrange(0, 200)
+        rx = random.randrange(0, MAP_SIZE)
+        ry = random.randrange(0, MAP_SIZE)
         if map != None:
             while map[ry][rx] == WALL:
-                rx = random.randrange(0, 200)
-                ry = random.randrange(0, 200)
+                rx = random.randrange(0, MAP_SIZE)
+                ry = random.randrange(0, MAP_SIZE)
         self.vm_char.x = rx
         self.vm_char.y = ry
 
@@ -308,12 +310,12 @@ class Simulator:
         pass
 
     def read_map(self, map: str):
-        self.map = [[0 for i in range(200)] for j in range(200)]
+        self.map = [[0 for i in range(MAP_SIZE)] for j in range(MAP_SIZE)]
         self.turnmap = copy.deepcopy(self.map)
         m = open(map, "r").read()
         i = 0
         for line in m.splitlines():
-            for j in range(200):
+            for j in range(MAP_SIZE):
                 if line[j] == '#':
                     self.map[i][j] = 1
             i += 1
@@ -328,7 +330,7 @@ class Simulator:
     def move(self, player: Player, character: Character, dx:int, dy:int):
         rx = character.vm_char.x + dx
         ry = character.vm_char.y + dy
-        if rx >= 0 and rx < 200 and ry >= 0 and ry < 200:
+        if rx >= 0 and rx < MAP_SIZE and ry >= 0 and ry < MAP_SIZE:
             if self.map[ry][rx] == 0:
                 player.score += MOVE_SCORE
                 character.move_to = (rx, ry)
@@ -458,7 +460,7 @@ class Simulator:
                     for i in range(8):
                         x = fork.vm_char.x + dx[i]
                         y = fork.vm_char.y + dy[i]
-                        if x < 0 or x >= 200 or y < 0 or y >= 200:
+                        if x < 0 or x >= MAP_SIZE or y < 0 or y >= MAP_SIZE:
                             player.buffer.tmp[i + 1] = WALL
                         else:
                             player.buffer.tmp[i + 1] = self.turnmap[y][x]
