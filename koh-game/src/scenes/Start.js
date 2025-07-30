@@ -29,7 +29,9 @@ export class Start extends Phaser.Scene {
     preload() {
         this.load.image('path', 'assets/path.png');
         this.load.image('wall', 'assets/wall.png');
-        this.load.image('character', 'assets/character.png');
+        for (let i = 1;i<=10;i++){
+            this.load.image(`character-${i}`, `assets/character-${i}.png`);
+        }
         this.load.image('chest', 'assets/chest.png');
     }
 
@@ -77,18 +79,30 @@ export class Start extends Phaser.Scene {
     load_score() {
         let startX = 20;
         let startY = 20;
+        const color = [
+            "#630c0c",
+            "#3b5528",
+            "#b9983b",
+            "#4180b9",
+            "#843693",
+            "#63c4c9",
+            "#c2d84c",
+            "#e88a45",
+            "#c92067",
+            "#20c955"
+        ]
         for (let id in this.scores) {
             if (!this.scoreTextMap[id]) {
                 const text = this.add.text(startX, startY, `Player ${id}: ${this.scores[id]}`, {
-                    fontSize: '48px',
-                    color: '#ffffff'
-                }).setDepth(1000).setAlpha(0.7);
+                    fontSize: '32px',
+                    color: color[id - 1]
+                }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
                 this.scoreTextMap[id] = text;
             } else {
                 this.scoreTextMap[id].setText(`Player ${id}: ${this.scores[id]}`);
 
             }
-            startY += 40;
+            startY += 32;
         }
     }
 
@@ -135,6 +149,7 @@ export class Start extends Phaser.Scene {
 
     async sync_character() {
         let records = await this.get_character_records();
+        let i = 1;
         for (const [player, charList] of Object.entries(records)) {
             for (const char of charList) {
                 if (!this.characters[char.cid]) {
@@ -146,9 +161,9 @@ export class Start extends Phaser.Scene {
                         spawn_turn: char.spawn_turn,
                         dead_turn: char.dead_turn,
                         sprite: this.add.image(
-                            char.spawn_x * displayTileSize,
-                            char.spawn_y * displayTileSize,
-                            "character"
+                            char.spawn_x * displayTileSize - displayTileSize / 2,
+                            char.spawn_y * displayTileSize - displayTileSize / 2,
+                            `character-${i}`
                         ).setScale(scaleFactor).setOrigin(0)
                     };
                 } else {
@@ -156,6 +171,7 @@ export class Start extends Phaser.Scene {
                     this.characters[char.cid].dead_turn = char.dead_turn;
                 }
             }
+            i++;
         }
         console.log(records);
     }
@@ -274,7 +290,9 @@ export class Start extends Phaser.Scene {
                 character.sprite.setVisible(true);
             }
             character.sprite
-                .setPosition(x * displayTileSize, y * displayTileSize);
+                .setPosition(
+                    x * displayTileSize - displayTileSize / 2,
+                    y * displayTileSize - displayTileSize / 2);
         }
         for (let chest of Object.values(this.chests)) {
             if (this.turn < chest.spawn_turn || (chest.opened_turn != -1 && this.turn > chest.opened_turn)) {
