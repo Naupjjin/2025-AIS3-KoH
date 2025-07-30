@@ -279,7 +279,7 @@ def round_start(round_num):
     updates_round(round_num)
 
 
-    return "round completed"
+    return f"round {round_num} completed"
 
 @app.route("/api/pending/<int:round_num>")
 @api_key_required
@@ -289,7 +289,7 @@ def round_pending(round_num):
     updates_round(round_num)
 
 
-    return "round completed"
+    return f"pending {round_num} completed"
 
 
 if __name__ == "__main__":
