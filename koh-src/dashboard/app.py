@@ -40,6 +40,28 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def copy_last_round_scripts(new_round: int):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT MAX(round) FROM scripts WHERE round < %s;", (new_round,))
+    last_round = cur.fetchone()[0]
+
+    if last_round is None:
+        conn.close()
+        return
+
+    cur.execute("""
+        INSERT INTO scripts (round, teamid, scripts)
+        SELECT %s AS round, teamid, scripts
+        FROM scripts
+        WHERE round = %s
+        ON CONFLICT (round, teamid) DO NOTHING;
+    """, (new_round, last_round))
+
+    conn.commit()
+    conn.close()
+
 # 裝飾器：檢查是否為管理員
 def admin_required(f):
     @wraps(f)
@@ -306,7 +328,7 @@ def simulator(round_num):
     global SIMULATOR
     print(f"== Start to Simulator : Round {round_num} ==")
     # initialize
-    SIMULATOR = Simulator(1)
+    SIMULATOR = Simulator(10)
     SIMULATOR.finished = False
     SIMULATOR.finished = False
 
@@ -446,6 +468,7 @@ def round_start(round_num):
     global PENDING
     PENDING = 0
     updates_round(round_num)
+    copy_last_round_scripts(round_num)
 
     return {"status": "ok", "message": f"round {round_num} start!"}
 
@@ -475,6 +498,8 @@ def admin_start_round(round_num):
     global PENDING
     PENDING = 0
     updates_round(round_num)
+    copy_last_round_scripts(round_num)
+
     return jsonify({"status": "ok", "message": f"round {round_num} start!"})
 
 

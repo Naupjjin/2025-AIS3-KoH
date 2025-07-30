@@ -1,7 +1,7 @@
 import random
 import os
 
-def generate_map(width=200, height=200, wall_ratio=0.12):
+def generate_map(width=50, height=50, wall_ratio=0.12):
     grid = [['.' for _ in range(width)] for _ in range(height)]
     wall_count = int(width * height * wall_ratio)
     added = 0
@@ -27,7 +27,7 @@ def generate_map(width=200, height=200, wall_ratio=0.12):
 
     return grid
 
-
-data = generate_map()
-with open(f"map_03.txt", "w") as f:
-    f.write("\n".join("".join(row) for row in data))
+for i in range(1, 21):
+    data = generate_map()
+    with open(f"map_{i:02}.txt", "w") as f:
+        f.write("\n".join("".join(row) for row in data))
