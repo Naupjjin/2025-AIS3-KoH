@@ -282,7 +282,7 @@ def get_result(round_num):
     return f"/result : now round : {round_num}"
 
 
-#####
+##### admin api
 
 def get_map_path(round_num: int) -> str:
 
@@ -386,13 +386,46 @@ def simulator(round_num):
     save_game_scores_to_db(round_num, game_scores_list)
     update_score_for_round(round_num)
 
-    return f"/simulator : simulator round : {round_num}"
+    return f"Success simulate {round_num}"
 
+@app.route("/api/round_status/<int:round_num>")
+@api_key_required
+def round_status(round_num):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM scores WHERE round = %s", (round_num,))
+    count = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+
+    if round_num > NOW_ROUND:
+        status = "not_started"
+    elif round_num == NOW_ROUND:
+        status = "pending" if count == 0 else "completed"
+    else: 
+        status = "rejudge" if count == 0 else "completed"
+
+    return {"round": round_num, "status": status}
 
 @app.route("/api/rejudge/<int:round_num>")
 @api_key_required
 def rejudge(round_num):
-    return f"/rejudge : rejudge round : {round_num}"
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM game_history WHERE round = %s", (round_num,))
+    cur.execute("DELETE FROM scores WHERE round = %s", (round_num,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True
+        t.start()
+        return {"status": "ok", "message": f"rejudge round {round_num} started"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 @app.route("/api/start_round/<int:round_num>")
 @api_key_required
@@ -401,8 +434,9 @@ def round_start(round_num):
     PENDING = 0
     updates_round(round_num)
 
+    return {"status": "ok", "message": f"round {round_num} start!"}
 
-    return f"start round {round_num} completed"
+
 
 @app.route("/api/pending/<int:round_num>")
 @api_key_required
@@ -412,9 +446,13 @@ def round_pending(round_num):
     updates_round(round_num)
 
     ### Start Simulator
-    response = simulator(round_num)
-
-    return f"pending {round_num} completed"
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True  
+        t.start()
+        return {"status": "ok", "message": f"simulator startup for round {round_num}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 if __name__ == "__main__":
     if NOW_ROUND == 1:
