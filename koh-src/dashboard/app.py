@@ -353,9 +353,12 @@ def round_pending(round_num):
 
     return f"pending {round_num} completed"
 
-
-if __name__ == "__main__":
+@app.route("/api/initdb")
+@api_key_required
+def initdb():
     init_token_table()
     init_team_scripts()
+
+if __name__ == "__main__":
     # test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=False)
