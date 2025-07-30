@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, session, url_for, f
 import hashlib
 import os
 from functools import wraps
+import threading
+import time
 from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts
 
 import sys
@@ -296,8 +298,30 @@ def simulator(round_num):
     cur.close()
     conn.close()
 
-    print(rows)
+    def simulate_all(sim: Simulator, total_rounds=200):
+        for i in range(total_rounds):
+            sim.simulate()
+        sim.finished = True  
 
+    print(rows)
+    for team_id, script in rows:
+        if 0 < team_id < len(sim.players):
+            sim.players[team_id - 1].script = script
+    
+    # simulate it
+    t = threading.Thread(target=simulate_all, args=(sim,), daemon=True)
+    t.start()
+
+    while not sim.finished:
+        # print(sim.dump_character_records())
+        # print(sim.dump_chest_records())
+        time.sleep(1)
+
+    # print(sim.dump_character_records())
+    # print(sim.dump_chest_records())
+    print(sim.dump_scores())
+
+    t.join()
 
     return f"/simulator : simulator round : {round_num}"
 
@@ -334,4 +358,4 @@ if __name__ == "__main__":
     init_token_table()
     init_team_scripts()
     test_generate_random_game_scores()
-    app.run(host="0.0.0.0", port=48763, debug=True)
+    app.run(host="0.0.0.0", port=48763, debug=False)
