@@ -259,10 +259,46 @@ def uploads():
 def get_result(round_num):
     return f"/result : now round : {round_num}"
 
+def get_map_path(round_num: int) -> str:
 
-@app.route("/api/simulator/<int:round_num>")
-@api_key_required
+    maps_num = (round_num - 1) // 5 + 1 
+
+    if maps_num > 20:
+        maps_num = 20
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    map_file = f"map_{maps_num:02}.txt"
+    return os.path.join(base_dir, "..", "simulator", "maps", map_file)
+
+
 def simulator(round_num):
+    print(f"== Start to Simulator : Round {round_num} ==")
+    # initialize
+    sim = Simulator(10)
+    sim.finished = False
+    sim.finished = False
+
+    # read maps
+    maps_path = get_map_path(round_num)
+
+    print(f"[Simulator {round_num}] load maps path \'{maps_path}\'")
+    sim.read_map(maps_path)
+
+    # load player scripts
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT teamid, scripts 
+        FROM scripts
+        WHERE round = %s
+    """, (round_num,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    print(rows)
+
+
     return f"/simulator : simulator round : {round_num}"
 
 
@@ -288,6 +324,8 @@ def round_pending(round_num):
     PENDING = 1
     updates_round(round_num)
 
+    ### Start Simulator
+    response = simulator(round_num)
 
     return f"pending {round_num} completed"
 

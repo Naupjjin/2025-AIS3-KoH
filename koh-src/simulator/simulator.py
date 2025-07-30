@@ -7,6 +7,7 @@ import threading
 import json
 import time
 import math
+import os
 
 class VM_Character(Structure):
     _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
@@ -249,7 +250,8 @@ class Simulator:
     chest_records: dict[Chest, ChestRecord]
     turn: int = 0
     def __init__(self, team_num):
-        self.vm = CDLL('./vm.lib')
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.vm = CDLL(os.path.join(self.base_dir, "vm.lib"))
         '''
         int vm_run(
             int team_id,
@@ -275,7 +277,7 @@ class Simulator:
         self.new_round()
         return
     def new_round(self):
-        maps = glob.glob("maps/*.txt")
+        maps = glob.glob(os.path.join(self.base_dir, "maps/*.txt"))
         self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
@@ -522,12 +524,29 @@ class Simulator:
         for row in debug_map:
             print(''.join(row))
 
-    
+
+
 if __name__ == "__main__":
-    sim = Simulator(2)
+    sim = Simulator(10)
+    sim.finished = False
     sim.read_map("maps/map_01.txt")
-    sim.players[0].script = '''
+    for i in range(10):
+        sim.players[i].script = '''
+    add 0 #1
+    je 0 #1 label_down
+    je 0 #2 label_right
+    je 0 #3 label_up
+    je 0 #4 label_left
+    label_down:
+    ret #2
+    label_right:
+    ret #4
+    label_up:
+    ret #1
+    label_left:
+    ret #7
     '''
+
     for i in range(5):
         sim.simulate()
             
