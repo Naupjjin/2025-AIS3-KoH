@@ -169,6 +169,12 @@ def get_character_records():
     res.headers['Content-Type'] = "application/json"
     return res
 
+@app.route("/get_chest_records")
+def get_chest_records():
+    res = make_response(SIMULATOR.dump_chest_records())
+    res.headers['Content-Type'] = "application/json"
+    return res
+
 @app.route("/scoreboard")
 @login_required
 def scoreboard():

@@ -4,11 +4,12 @@ const SHUTDOWN = "shutdown"
 const HOST = "http://127.0.0.1:48763"
 
 const tileSize = 32;
-const scaleFactor = 0.3;
+const scaleFactor = 0.15;
 const displayTileSize = tileSize * scaleFactor;
 
 export class Start extends Phaser.Scene {
     characters = {};
+    chests = {};
     tiles_sprite = [];
     turn = 0;
     constructor() {
@@ -27,6 +28,7 @@ export class Start extends Phaser.Scene {
         this.load.image('path', 'assets/path.png');
         this.load.image('wall', 'assets/wall.png');
         this.load.image('character', 'assets/character.png');
+        this.load.image('chest', 'assets/chest.png');
     }
 
     create_map() {
@@ -108,9 +110,13 @@ export class Start extends Phaser.Scene {
         this.create_map();
 
         this.sync_character();
+        this.sync_chest();
         this.sync_event = this.time.addEvent({
             delay: 3000, // 毫秒
-            callback: this.sync_character,
+            callback: () => {
+                this.sync_character();
+                this.sync_chest();
+            },
             callbackScope: this,
             loop: true
         });
@@ -126,7 +132,6 @@ export class Start extends Phaser.Scene {
                         spawn_x: char.spawn_x,
                         spawn_y: char.spawn_y,
                         opcodes: char.opcodes.split('').map(o => parseInt(o)),
-                        pointer: 0,
                         spawn_turn: char.spawn_turn,
                         dead_turn: char.dead_turn,
                         sprite: this.add.image(
@@ -142,7 +147,29 @@ export class Start extends Phaser.Scene {
             }
         }
         console.log(records);
+    }
 
+    async sync_chest() {
+        let records = await this.get_chest_records();
+        for (const chest of records) {
+            if (!this.chests[chest.cid]) {
+                this.chests[chest.cid] = {
+                    cid: chest.cid,
+                    x: chest.x,
+                    y: chest.y,
+                    spawn_turn: chest.spawn_turn,
+                    opened_turn: chest.opened_turn,
+                    sprite: this.add.image(
+                        chest.x * displayTileSize,
+                        chest.y * displayTileSize,
+                        "chest"
+                    ).setScale(scaleFactor).setOrigin(0)
+                };
+            } else {
+                this.chests[chest.cid].opened_turn = chest.opened_turn;
+            }
+        }
+        console.log(records);
     }
     async get_round_info() {
         console.log("get round info");
@@ -172,6 +199,16 @@ export class Start extends Phaser.Scene {
         } catch {
         }
     }
+
+    async get_chest_records() {
+        console.log("get_chest_records");
+        try {
+            let r = await fetch(`${HOST}/get_chest_records`).then(r => r.json());
+            return r;
+        } catch {
+        }
+    }
+
     check_movable(x, y) {
         return x >= 0 && x < 200 && y >= 0 && y < 200 && this.map[y][x] == 0;
     }
@@ -209,6 +246,13 @@ export class Start extends Phaser.Scene {
             }
             character.sprite
                 .setPosition(x * displayTileSize, y * displayTileSize);
+        }
+        for (let chest of Object.values(this.chests)) {
+            if (this.turn < chest.spawn_turn || (chest.opened_turn != -1 && this.turn > chest.opened_turn)) {
+                chest.sprite.setVisible(false);
+            } else {
+                chest.sprite.setVisible(true);
+            }
         }
     }
 }

@@ -19,7 +19,9 @@ class VM_Buffer(Structure):
     _pack_ = 1
     _fields_ = [("global", c_uint * 50), ("self", c_uint * 8), ("tmp", c_uint * 42)]
 
+last_chest_id = 0
 class Chest:
+    cid: int
     type:int = 0
     score = 0
     param = []
@@ -157,6 +159,9 @@ class Chest:
     CHALS = [reverse_chal, sort_chal, rsa_chal, point_addition_chal]
 
     def __init__(self, map):
+        global last_chest_id
+        self.cid = last_chest_id
+        last_chest_id += 1
         rx = random.randrange(0, 200)
         ry = random.randrange(0, 200)
         if map != None:
@@ -280,7 +285,8 @@ class Simulator:
         self.new_round()
         return
     def new_round(self):
-        global last_cid
+        global last_cid, last_chest_id
+        last_chest_id = 0
         last_cid = 0
         maps = glob.glob(os.path.join(self.base_dir, "maps/*.txt"))
         self.read_map(random.choice(maps))
@@ -395,8 +401,9 @@ class Simulator:
     
     def dump_chest_records(self):
         records = []
-        for _, value in self.chest_records.items():
+        for key, value in self.chest_records.items():
             records.append({
+                "cid": key.cid,
                 "x": value.x,
                 "y": value.y,
                 "spawn_turn": value.spawn_turn,
@@ -506,29 +513,6 @@ class Simulator:
 
         self.turn += 1
         return
-    
-    def debug(self, n_turn):
-        print(f"=== Turn {n_turn} ===")
-        debug_map = [['#' if self.map[y][x] else '.' for x in range(200)] for y in range(200)]
-
-        for player in self.players:
-            for i, fork in enumerate(player.forks):
-                x = fork.vm_char.x
-                y = fork.vm_char.y
-                if 0 <= x < 200 and 0 <= y < 200:
-                    if fork.is_fork:
-                        debug_map[y][x] = chr(ord('a') + ((player.id - 1) % 26))  # 分身：小寫
-                    else:
-                        debug_map[y][x] = chr(ord('A') + ((player.id - 1) % 26))  # 主體：大寫
-
-        for chest in self.chests:
-            x = chest.vm_chest.x
-            y = chest.vm_chest.y
-            if 0 <= x < 200 and 0 <= y < 200:
-                debug_map[y][x] = '$'
-
-        for row in debug_map:
-            print(''.join(row))
 
 
 
