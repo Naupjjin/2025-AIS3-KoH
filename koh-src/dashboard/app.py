@@ -4,6 +4,11 @@ import os
 from functools import wraps
 from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts
 
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from simulator.simulator import Simulator
+
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
 
