@@ -401,7 +401,7 @@ class Simulator:
         scores = {}
         for player in self.players:
             scores[player.id] = player.score
-        return json.dumps(scores)
+        return scores
 
     def simulate(self):
         character_num = 0

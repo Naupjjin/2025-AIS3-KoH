@@ -1,0 +1,62 @@
+[
+  {
+    "x": 115,
+    "y": 103,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 118,
+    "y": 50,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 164,
+    "y": 33,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 116,
+    "y": 83,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 21,
+    "y": 27,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 187,
+    "y": 83,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 72,
+    "y": 51,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 79,
+    "y": 32,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 57,
+    "y": 21,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  },
+  {
+    "x": 16,
+    "y": 130,
+    "spawn_turn": 0,
+    "opened_turn": -1
+  }
+]

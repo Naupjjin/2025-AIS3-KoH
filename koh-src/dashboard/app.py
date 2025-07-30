@@ -4,7 +4,8 @@ import os
 from functools import wraps
 import threading
 import time
-from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts
+import json
+from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -261,6 +262,9 @@ def uploads():
 def get_result(round_num):
     return f"/result : now round : {round_num}"
 
+
+#####
+
 def get_map_path(round_num: int) -> str:
 
     maps_num = (round_num - 1) // 5 + 1 
@@ -312,16 +316,56 @@ def simulator(round_num):
     t = threading.Thread(target=simulate_all, args=(sim,), daemon=True)
     t.start()
 
+    # fetch result to json
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    playerinfo_path = os.path.join(base_dir, "player_info")
+    chestinfo_path = os.path.join(base_dir, "chest_info")
+
+    os.makedirs(playerinfo_path, exist_ok=True)
+    os.makedirs(chestinfo_path, exist_ok=True)
+
+    object_file = f"round_{round_num:02}.json"
+
+    player_file = os.path.join(playerinfo_path, object_file)
+    chest_file = os.path.join(chestinfo_path, object_file)
+
     while not sim.finished:
-        # print(sim.dump_character_records())
-        # print(sim.dump_chest_records())
+
+        player_data = sim.dump_character_records()
+        chest_data = sim.dump_chest_records()
+
+        if isinstance(player_data, str):
+            player_data = json.loads(player_data)
+        if isinstance(chest_data, str):
+            chest_data = json.loads(chest_data)
+
+        with open(player_file, "w", encoding="utf-8") as f:
+            json.dump(player_data, f, ensure_ascii=False, indent=2)
+
+        with open(chest_file, "w", encoding="utf-8") as f:
+            json.dump(chest_data, f, ensure_ascii=False, indent=2)
+
         time.sleep(1)
 
-    # print(sim.dump_character_records())
-    # print(sim.dump_chest_records())
-    print(sim.dump_scores())
+    player_data = sim.dump_character_records()
+    chest_data = sim.dump_chest_records()
+    if isinstance(player_data, str):
+        player_data = json.loads(player_data)
+    if isinstance(chest_data, str):
+        chest_data = json.loads(chest_data)
 
+    with open(player_file, "w", encoding="utf-8") as f:
+        json.dump(player_data, f, ensure_ascii=False, indent=2)
+
+    with open(chest_file, "w", encoding="utf-8") as f:
+        json.dump(chest_data, f, ensure_ascii=False, indent=2)
+
+    game_scores_list = sim.dump_scores()
     t.join()
+
+    save_game_scores_to_db(round_num, game_scores_list)
+    update_score_for_round(round_num)
 
     return f"/simulator : simulator round : {round_num}"
 
@@ -353,12 +397,8 @@ def round_pending(round_num):
 
     return f"pending {round_num} completed"
 
-@app.route("/api/initdb")
-@api_key_required
-def initdb():
-    init_token_table()
-    init_team_scripts()
-
 if __name__ == "__main__":
-    # test_generate_random_game_scores()
+    if NOW_ROUND == 1:
+        init_token_table()
+        init_team_scripts()
     app.run(host="0.0.0.0", port=48763, debug=False)

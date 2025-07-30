@@ -35,6 +35,7 @@
         }
     </style>
 </head>
+<body>
     {% include "sidebar.html" %}
     <h2>Game History</h2>
     <table>
@@ -62,8 +63,15 @@
                         {% set score = row.get(team, '') %}
                         {% if score != '' %}
                             {% if max_score == min_score %}
-                                {% set red = 128 %}
-                                {% set green = 255 %}
+                                {% if max_score == 0 %}
+                                    {# 全0分顯示灰色 #}
+                                    {% set red = 80 %}
+                                    {% set green = 80 %}
+                                {% else %}
+                                    {# 全部分數相同且非0，顯示綠色 #}
+                                    {% set red = 0 %}
+                                    {% set green = 255 %}
+                                {% endif %}
                             {% else %}
                                 {% set percent = (score - min_score) / (max_score - min_score) %}
                                 {% set red = (1 - percent) * 255 %}

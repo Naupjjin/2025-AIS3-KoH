@@ -41,6 +41,24 @@ def init_token_table():
     cur.close()
     conn.close()
 
+def save_game_scores_to_db(round_num, scores_dict):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    for team_id, score in scores_dict.items():
+
+        cur.execute("""
+            INSERT INTO game_history (round, team_id, game_scores)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (round, team_id)
+            DO UPDATE SET game_scores = EXCLUDED.game_scores
+        """, (round_num, team_id, score))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 def update_score_for_round(round_number: int):
     ranking_score = {
         1: 30,
@@ -64,7 +82,13 @@ def update_score_for_round(round_number: int):
     rank = 0      
     real_rank = 0  
     for i, (team_id, score) in enumerate(results, start=1):
-
+        if score == 0:
+            cur.execute(
+                "INSERT INTO scores (round, team_id, scores) VALUES (%s, %s, %s) "
+                "ON CONFLICT (round, team_id) DO UPDATE SET scores = EXCLUDED.scores",
+                (round_number, team_id, 0)
+            )
+            continue
         if score != prev_score:
             rank = i
             prev_score = score
