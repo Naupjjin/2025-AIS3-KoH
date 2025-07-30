@@ -3,13 +3,17 @@ const RUNNING = "running";
 const SHUTDOWN = "shutdown"
 const HOST = "http://127.0.0.1:48763"
 
+const tileSize = 32;
+const scaleFactor = 0.3;
+const displayTileSize = tileSize * scaleFactor;
+
 export class Start extends Phaser.Scene {
     constructor() {
         super('Start');
 
         // 隨機生成地圖 (1 = wall, 0 = path)
         this.map = Array.from({ length: 200 }, () =>
-            Array.from({ length: 200 }, () => Math.random() > 0.8 ? 1 : 0)
+            Array.from({ length: 200 }, () => 0)
         );
         this.status = SHUTDOWN;
         this.dragStartPoint = null;
@@ -21,12 +25,7 @@ export class Start extends Phaser.Scene {
         this.load.image('wall', 'assets/wall.png');
     }
 
-
-    create() {
-        const tileSize = 32;
-        const scaleFactor = 0.25;
-        const displayTileSize = tileSize * scaleFactor;
-
+    create_map() {
         for (let y = 0; y < this.map.length; y++) {
             for (let x = 0; x < this.map[y].length; x++) {
                 const key = this.map[y][x] === 1 ? 'wall' : 'path';
@@ -35,6 +34,12 @@ export class Start extends Phaser.Scene {
                 tile.setScale(scaleFactor);
             }
         }
+    }
+
+
+    create() {
+
+        this.create_map();
 
         const worldSize = 200 * displayTileSize;
         this.cameras.main.setBounds(0, 0, worldSize, worldSize);
@@ -59,29 +64,75 @@ export class Start extends Phaser.Scene {
             this.dragStartPoint = null;
             this.camStartPoint = null;
         });
+        this.start_game();
+
     }
-    last_error_time = 0;
-    async get_round_info(){
-        try{
-            let r = await fetch(`${HOST}/round_info`).then(r=>r.json());
-            console.log(r);
-            if(r["status"]){
+    start_event = null;
+    sync_event = null;
+
+    async start_game() {
+
+        await this.get_round_info();
+        if (this.status == SHUTDOWN && !this.start_event) {
+            this.start_event = this.time.addEvent({
+                delay: 2000, // 毫秒
+                callback: this.start_game,
+                callbackScope: this,
+                loop: true
+            });
+            return;
+        }
+        if (this.start_event) {
+            this.start_event.remove();
+            this.start_event = null;
+        }
+        console.log(this.status)
+        this.map = await this.get_map();
+        this.create_map();
+        this.sync_character();
+        this.sync_event = this.time.addEvent({
+            delay: 2000, // 毫秒
+            callback: this.sync_character,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    async sync_character() {
+        let records = await this.get_character_records();
+        console.log(records);
+    }
+    async get_round_info() {
+        try {
+            let r = await fetch(`${HOST}/round_info`).then(r => r.json());
+            r["status"] = true;
+            if (r["status"]) {
                 this.status = RUNNING;
-            }else{
-                this.last_error_time = Date.now();
             }
-        }catch{
-            this.last_error_time = Date.now();
+
+        } catch {
         }
     }
 
-    update() {
-        /* Round start */
-        if(this.status == SHUTDOWN) {
-            if(Date.now() - this.last_error_time > 2000){
-                this.get_round_info();
-            } 
-            return
+    async get_map() {
+        console.log("get map");
+        try {
+            let r = await fetch(`${HOST}/get_map`).then(r => r.json());
+            return r;
+        } catch {
         }
+    }
+
+    async get_character_records() {
+        console.log("get_character_records");
+        try {
+            let r = await fetch(`${HOST}/get_character_records`).then(r => r.json());
+            return r;
+        } catch {
+        }
+    }
+
+    async update() {
+
     }
 }
