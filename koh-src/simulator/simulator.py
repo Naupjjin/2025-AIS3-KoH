@@ -315,6 +315,8 @@ class Simulator:
         m = open(map, "r").read()
         i = 0
         for line in m.splitlines():
+            if i == MAP_SIZE:
+                break
             for j in range(MAP_SIZE):
                 if line[j] == '#':
                     self.map[i][j] = 1
