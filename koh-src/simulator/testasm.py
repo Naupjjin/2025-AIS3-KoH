@@ -21,3 +21,28 @@ ret #1
 label_left:
 ret #3
 '''
+
+chest_test = '''
+    jg 50 #0 solve_chest
+open_chest:
+    ret #5
+solve_chest:
+    je 50 #1 solve_chal1
+    ret #0
+solve_chal1:
+    // swap(51, 57)
+    mov 72 51
+    mov 51 57
+    mov 57 72
+
+    mov 72 52
+    mov 52 56
+    mov 56 72
+
+    mov 72 53
+    mov 53 55
+    mov 55 72
+    je 0 0 end
+end:
+    ret #5
+    '''

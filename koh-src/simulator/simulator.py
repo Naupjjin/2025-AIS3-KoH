@@ -166,10 +166,9 @@ class Character:
     def __init__(self, x: int, y :int, is_fork: bool):
         self.vm_char = VM_Character(x, y, is_fork)
         self.selfbuf = (c_uint * 8)()
-        self.health = 3
         self.is_fork = is_fork
         self.move_to = None
-        self.last_attackers: set[Player] = {}
+        self.last_attackers: set[Player] = set()
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
         self_y = self.vm_char.y
@@ -177,6 +176,19 @@ class Character:
         if not (self_x == x and self_y == y) and abs(self_x - x) <= 1 and abs(self_y - y) <= 1:
             return True
         return False
+    def spawn(self, map: list[list[int]]):
+        if self.is_fork:
+            self.health = 2
+        else:
+            self.health = 3
+        rx = random.randrange(0, 200)
+        ry = random.randrange(0, 200)
+        if map != None:
+            while map[ry][rx] == WALL:
+                rx = random.randrange(0, 200)
+                ry = random.randrange(0, 200)
+        self.vm_char.x = rx
+        self.vm_char.y = ry
 
 class Player:
     forks: list[Character]
@@ -206,6 +218,7 @@ class Record:
 
 MOVE_SCORE = 1
 KILL_FORK_SCORE = 50
+KILL_PLAYER_SCORE = 70
 
 PATH = 0
 WALL = 1
@@ -265,8 +278,7 @@ class Simulator:
             new_player = Player(i, "")
             self.players.append(new_player)
             player_char = new_player.forks[0]
-            player_char.vm_char.x = random.randrange(0, 200)
-            player_char.vm_char.y = random.randrange(0, 200)
+            player_char.spawn(self.map)
             self.records[player_char] = Record(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
         pass
 
@@ -449,17 +461,17 @@ class Simulator:
                     print(f"move to {fork.vm_char.x} {fork.vm_char.y}")
                     fork.move_to = None
                 if fork.health <= 0:
-                    if fork.is_fork:
-                        for attacker in fork.last_attackers:
+                    for attacker in fork.last_attackers:
+                        if fork.is_fork:
                             attacker.score += KILL_FORK_SCORE
-                        player.forks.remove(fork)
-                        self.records[fork].dead_turn = self.turn
-                    else:
-                        for attacker in player.character.last_attackers:
-                            attacker.score += player.score // 3
-                        player.score -= player.score // 3
-                        #respawn
+                            player.forks.remove(fork)
+                            self.records[fork].dead_turn = self.turn
+                        else:
+                            attacker.score += KILL_PLAYER_SCORE
+                    if not fork.is_fork:
+                        fork.spawn(self.map)
                 fork.last_attackers.clear()
+
 
         self.turn += 1
         return
@@ -489,41 +501,11 @@ class Simulator:
 
     
 if __name__ == "__main__":
-    sim = Simulator(1)
+    sim = Simulator(2)
     sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
-    jg 50 #0 solve_chest
-open_chest:
-    ret #5
-solve_chest:
-    je 50 #1 solve_chal1
-    ret #0
-solve_chal1:
-    // swap(51, 57)
-    mov 72 51
-    mov 51 57
-    mov 57 72
-
-    mov 72 52
-    mov 52 56
-    mov 56 72
-
-    mov 72 53
-    mov 53 55
-    mov 55 72
-    je 0 0 end
-end:
-    ret #5
     '''
-    char = sim.players[0].forks[0].vm_char
-    char.x = 0
-    char.y = 0
-    chest = sim.chests[0]
-    chest.vm_chest.x = 1
-    chest.vm_chest.y = 0
-    for i in range(2):
+    for i in range(5):
         sim.simulate()
-        for i in range(8):
-            print(sim.players[0].forks[0].selfbuf[i], end=" ")
             
         print(sim.dump_scores())
