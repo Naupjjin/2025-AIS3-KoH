@@ -416,7 +416,7 @@ int execute_opcode(
         mov <mem1> <mem2>
         mov <mem1> #<constant>
 
-        // mem1 = mem2[mem3]
+        // *mem1 = *mem2
         movi <mem1> <mem2> <mem3>
         // mem1 += constant
         add <mem1> <mem2>
@@ -478,8 +478,9 @@ int execute_opcode(
             break;
         case INS_MOVI:
         {
-            unsigned int addr = read_mem(inst.arg3) + inst.arg2;
-            write_mem(inst.arg1, read_mem(addr));
+            unsigned int dst = read_mem(inst.arg1);
+            unsigned int src = read_mem(inst.arg3);
+            write_mem(read_mem(dst), read_mem(src));
             break;
         }
         case INS_ADD:
