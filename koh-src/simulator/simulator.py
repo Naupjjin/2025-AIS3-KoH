@@ -155,10 +155,15 @@ class Chest:
     
     CHALS = [reverse_chal, sort_chal, rsa_chal, point_addition_chal]
 
-    def __init__(self, x: int, y: int):
-        self.vm_chest = VM_Chest(x, y)
-        self.type = 1
-        #self.type = random.randrange(1, len(self.CHALS)+1)
+    def __init__(self, map):
+        rx = random.randrange(0, 200)
+        ry = random.randrange(0, 200)
+        if map != None:
+            while map[ry][rx] == WALL:
+                rx = random.randrange(0, 200)
+                ry = random.randrange(0, 200)
+        self.vm_chest = VM_Chest(rx, ry)
+        self.type = random.randrange(1, len(self.CHALS)+1)
         self.CHALS[self.type - 1](self)
     
     
@@ -200,7 +205,7 @@ class Player:
         self.score = 0
         self.fork_cost = 10
         pass
-class Record:
+class CharacterRecord:
     team_num: int
     spawn_x: int
     spawn_y: int
@@ -213,6 +218,17 @@ class Record:
         self.spawn_y = spawn_y
         self.spawn_turn = spawn_turn
         self.opcodes = []
+        pass
+
+class ChestRecord:
+    x: int
+    y: int
+    spawn_turn: int
+    opened_turn: int = -1
+    def __init__(self, x, y, spawn_turn):
+        self.x = x
+        self.y = y
+        self.spawn_turn = spawn_turn
         pass
 
 
@@ -229,7 +245,8 @@ CHARACTER = 4
 class Simulator:
     players: list[Player]
     chests: list[Chest]
-    records: dict[Character, Record]
+    char_records: dict[Character, CharacterRecord]
+    chest_records: dict[Chest, ChestRecord]
     turn: int = 0
     def __init__(self, team_num):
         self.vm = CDLL('./vm.lib')
@@ -262,24 +279,19 @@ class Simulator:
         self.read_map(random.choice(maps))
         self.players = []
         self.chests = []
-        self.records = {}
-        self.chest_records = []
+        self.char_records = {}
+        self.chest_records = {}
         for i in range(10):
-            new_chest = Chest(random.randrange(0, 200), random.randrange(0, 200))
+            new_chest = Chest(self.map)
             self.chests.append(new_chest)
-            self.chest_records.append({
-                "x": new_chest.vm_chest.x,
-                "y": new_chest.vm_chest.y,
-                "spawn_turn": self.turn,
-                "dead_turn": -1
-            })
+            self.chest_records[new_chest] = ChestRecord(new_chest.vm_chest.x, new_chest.vm_chest.y, self.turn)
 
         for i in range(1, self.team_num + 1):
             new_player = Player(i, "")
             self.players.append(new_player)
             player_char = new_player.forks[0]
             player_char.spawn(self.map)
-            self.records[player_char] = Record(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
+            self.char_records[player_char] = CharacterRecord(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
         pass
 
     def read_map(self, map: str):
@@ -340,6 +352,7 @@ class Simulator:
                         return
                     i += 1
                 self.chests.remove(chest)
+                self.chest_records[chest].opened_turn = self.turn
                 player.score += chest.score
                 return
 
@@ -353,13 +366,13 @@ class Simulator:
             player.forks.append(new_char)
             player.score -= player.fork_cost
             player.fork_cost *= 2
-            self.records[new_char] = Record(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
+            self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
             print("fork")
         return
     
-    def dump_records(self):
+    def dump_character_records(self):
         records = {}
-        for key, value in self.records.items():
+        for key, value in self.char_records.items():
             if value.team_num not in records:
                 records[value.team_num] = []
             records[value.team_num].append({
@@ -369,6 +382,17 @@ class Simulator:
                 "spawn_turn": value.spawn_turn,
                 "dead_turn": value.dead_turn,
                 "is_fork": key.is_fork
+            })
+        return json.dumps(records)
+    
+    def dump_chest_records(self):
+        records = []
+        for _, value in self.chest_records.items():
+            records.append({
+                "x": value.x,
+                "y": value.y,
+                "spawn_turn": value.spawn_turn,
+                "opened_turn": value.opened_turn
             })
         return json.dumps(records)
     def dump_scores(self):
@@ -436,8 +460,7 @@ class Simulator:
                 character_opcode += job.result()
         # do operations
         for player, character, opcode in character_opcode:
-            print(opcode)
-            self.records[character].opcodes.append(opcode)
+            self.char_records[character].opcodes.append(opcode)
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
@@ -465,7 +488,7 @@ class Simulator:
                         if fork.is_fork:
                             attacker.score += KILL_FORK_SCORE
                             player.forks.remove(fork)
-                            self.records[fork].dead_turn = self.turn
+                            self.char_records[fork].dead_turn = self.turn
                         else:
                             attacker.score += KILL_PLAYER_SCORE
                     if not fork.is_fork:
@@ -509,3 +532,4 @@ if __name__ == "__main__":
         sim.simulate()
             
         print(sim.dump_scores())
+        print(sim.dump_chest_records())
