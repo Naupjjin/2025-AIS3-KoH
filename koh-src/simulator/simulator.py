@@ -552,3 +552,24 @@ if __name__ == "__main__":
             
         print(sim.dump_scores())
         print(sim.dump_chest_records())
+    
+    '''
+        def simulate_all(sim: Simulator, total_rounds=200):
+        for i in range(total_rounds):
+            sim.simulate()
+        sim.finished = True  
+
+        
+    t = threading.Thread(target=simulate_all, args=(sim,), daemon=True)
+    t.start()
+
+  
+    while not sim.finished:
+        print(sim.dump_records())
+        time.sleep(1)
+
+    print(sim.dump_records())
+    print(sim.dump_scores())
+
+    t.join()
+    '''
