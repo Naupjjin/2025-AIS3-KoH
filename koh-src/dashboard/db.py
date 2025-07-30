@@ -11,36 +11,6 @@ def get_connection():
     )
 
 
-def init_token_table():
-    tokens = [
-        (0, '91730e66027d966b74f8827c702a7bed', True),
-        (1, '50b0eba76d7db935', False),
-        (2, '6f8440739d0fadd4', False),
-        (3, 'a5e644862d50a868', False),
-        (4, 'a29ecef795013e98', False),
-        (5, 'c51b015f5bf554a1', False),
-        (6, 'abbcdad59a97e2ad', False),
-        (7, '6ac6c8b1b29e6058', False),
-        (8, 'c633e634a0c53770', False),
-        (9, '062dd1e4b830abae', False),
-        (10, 'wearenpcyeahhhhh', False)
-    ]
-
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM teams;")
-
-    for team_id, token, is_admin in tokens:
-        hashed = hashlib.sha256(token.encode()).hexdigest()
-        cur.execute(
-            "INSERT INTO teams (team_id, team_token, is_admin) VALUES (%s, %s, %s);",
-            (team_id, hashed, is_admin)
-        )
-    conn.commit()
-    cur.close()
-    conn.close()
-
 def save_game_scores_to_db(round_num, scores_dict):
     conn = get_connection()
     cur = conn.cursor()

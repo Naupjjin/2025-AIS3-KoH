@@ -6,7 +6,7 @@ import threading
 import time
 import json
 from flask_cors import CORS
-from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
+from db import get_connection, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -297,9 +297,10 @@ def get_map_path(round_num: int) -> str:
 
 
 def simulator(round_num):
+    global SIMULATOR
     print(f"== Start to Simulator : Round {round_num} ==")
     # initialize
-    SIMULATOR = Simulator(10)
+    SIMULATOR = Simulator(1)
     SIMULATOR.finished = False
     SIMULATOR.finished = False
 
@@ -328,7 +329,7 @@ def simulator(round_num):
 
     print(rows)
     for team_id, script in rows:
-        if 0 < team_id < len(SIMULATOR.players):
+        if 0 < team_id and team_id <= len(SIMULATOR.players):
             SIMULATOR.players[team_id - 1].script = script
     
     # simulate it

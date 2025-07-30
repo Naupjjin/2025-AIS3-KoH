@@ -167,13 +167,16 @@ class Chest:
         self.type = random.randrange(1, len(self.CHALS)+1)
         self.CHALS[self.type - 1](self)
     
-    
+last_cid = 0
 class Character:
     def __init__(self, x: int, y :int, is_fork: bool):
+        global last_cid
         self.vm_char = VM_Character(x, y, is_fork)
         self.selfbuf = (c_uint * 8)()
         self.is_fork = is_fork
         self.move_to = None
+        self.cid = last_cid
+        last_cid += 1
         self.last_attackers: set[Player] = set()
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
@@ -277,6 +280,8 @@ class Simulator:
         self.new_round()
         return
     def new_round(self):
+        global last_cid
+        last_cid = 0
         maps = glob.glob(os.path.join(self.base_dir, "maps/*.txt"))
         self.read_map(random.choice(maps))
         self.players = []
@@ -378,6 +383,7 @@ class Simulator:
             if value.team_num not in records:
                 records[value.team_num] = []
             records[value.team_num].append({
+                "cid": key.cid,
                 "opcodes": ''.join(str(i) for i in value.opcodes),
                 "spawn_x": value.spawn_x,
                 "spawn_y": value.spawn_y,
