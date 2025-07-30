@@ -4,7 +4,7 @@ const SHUTDOWN = "shutdown"
 const HOST = "http://127.0.0.1:48763"
 
 const tileSize = 32;
-const scaleFactor = 0.4;
+const scaleFactor = 0.8;
 const displayTileSize = tileSize * scaleFactor;
 const worldSize = 100 * displayTileSize;
 
@@ -54,29 +54,6 @@ export class Start extends Phaser.Scene {
 
         this.create_map();
 
-        this.cameras.main.setBounds(0, 0, worldSize, worldSize);
-
-        // 拖曳 camera
-        this.input.on('pointerdown', (pointer) => {
-            this.dragStartPoint = new Phaser.Math.Vector2(pointer.x, pointer.y);
-            this.camStartPoint = new Phaser.Math.Vector2(this.cameras.main.scrollX, this.cameras.main.scrollY);
-        });
-
-        this.input.on('pointermove', (pointer) => {
-            if (!pointer.isDown || !this.dragStartPoint || !this.camStartPoint) return;
-
-            const dragX = pointer.x - this.dragStartPoint.x;
-            const dragY = pointer.y - this.dragStartPoint.y;
-
-            this.cameras.main.scrollX = this.camStartPoint.x - dragX;
-            this.cameras.main.scrollY = this.camStartPoint.y - dragY;
-        });
-
-        this.input.on('pointerup', () => {
-            this.dragStartPoint = null;
-            this.camStartPoint = null;
-        });
-
         this.key = this.input.keyboard.addKeys({
             plus: Phaser.Input.Keyboard.KeyCodes.PLUS,
             minus: Phaser.Input.Keyboard.KeyCodes.MINUS,
@@ -87,8 +64,19 @@ export class Start extends Phaser.Scene {
     start_event = null;
     sync_event = null;
 
-    async start_game() {
+    reset() {
+        for (let chest of Object.values(this.chests)) {
+            chest.sprite.destroy();
+        }
+        for (let character of Object.values(this.characters)) {
+            character.sprite.destroy();
+        }
+        this.characters = {};
+        this.chests = {};
+    }
 
+    async start_game() {
+        this.reset();
         await this.get_round_info();
         if (this.status == SHUTDOWN) {
             if (!this.start_event) {
@@ -115,6 +103,7 @@ export class Start extends Phaser.Scene {
         this.sync_event = this.time.addEvent({
             delay: 3000, // 毫秒
             callback: () => {
+                this.get_round_info();
                 this.sync_character();
                 this.sync_chest();
             },
@@ -178,6 +167,15 @@ export class Start extends Phaser.Scene {
             let r = await fetch(`${HOST}/round_info`).then(r => r.json());
             if (r["status"]) {
                 this.status = RUNNING;
+            } else {
+                if(this.status == RUNNING){
+                    console.log("restart");
+                    this.sync_event.remove();
+                    this.status = SHUTDOWN;
+                    this.start_game();
+                }else{
+                    this.status = SHUTDOWN;
+                }
             }
         } catch {
         }

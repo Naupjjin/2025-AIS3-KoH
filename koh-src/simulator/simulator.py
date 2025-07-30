@@ -296,18 +296,6 @@ class Simulator:
         self.chests = []
         self.char_records = {}
         self.chest_records = {}
-        for i in range(10):
-            new_chest = Chest(self.map)
-            self.chests.append(new_chest)
-            self.chest_records[new_chest] = ChestRecord(new_chest.vm_chest.x, new_chest.vm_chest.y, self.turn)
-
-        for i in range(1, self.team_num + 1):
-            new_player = Player(i, "")
-            self.players.append(new_player)
-            player_char = new_player.forks[0]
-            player_char.spawn(self.map)
-            self.char_records[player_char] = CharacterRecord(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
-        pass
 
     def read_map(self, map: str):
         self.map = [[0 for i in range(MAP_SIZE)] for j in range(MAP_SIZE)]
@@ -321,6 +309,25 @@ class Simulator:
                 if line[j] == '#':
                     self.map[i][j] = 1
             i += 1
+
+        # replant chests
+        self.chests = []
+        self.chest_records = {}
+        for i in range(10):
+            new_chest = Chest(self.map)
+            self.chests.append(new_chest)
+            self.chest_records[new_chest] = ChestRecord(new_chest.vm_chest.x, new_chest.vm_chest.y, self.turn)
+
+        # respawn character
+        self.players = []
+        self.char_records = {}
+        for i in range(1, self.team_num + 1):
+            new_player = Player(i, "")
+            self.players.append(new_player)
+            player_char = new_player.forks[0]
+            player_char.spawn(self.map)
+            self.char_records[player_char] = CharacterRecord(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
+        pass
     def set_script(self, id: int, script: str):
         if id > len(self.players):
             return
