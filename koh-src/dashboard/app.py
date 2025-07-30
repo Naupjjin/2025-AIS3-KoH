@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash,  abort
+from flask import Flask, render_template, request, make_response, redirect, session, url_for, flash,  abort, jsonify
 import hashlib
 import os
 from functools import wraps
 import threading
 import time
 import json
+from flask_cors import CORS
 from db import get_connection, init_token_table, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
 
 import sys
@@ -12,8 +13,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulator.simulator import Simulator
 
+SIMULATOR = Simulator(10)
+
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
+CORS(app)
 
 API_KEY = "TOMORINISCUTETHISISAPIKEY"
 
@@ -78,7 +82,6 @@ def home():
 def login():
     if request.method == "POST":
         token = request.form.get("token")
-        token = hashlib.sha256(token.encode()).hexdigest()
 
         conn = get_connection()
         cur = conn.cursor()
@@ -149,6 +152,22 @@ def game_scores():
 
     return render_template("game_history.html", matrix=matrix, rounds=rounds, teams=teams)
 
+@app.route("/round_info")
+def round_info():
+    return jsonify({
+        "round": NOW_ROUND,
+        "status": bool(PENDING)
+    })
+
+@app.route("/get_map")
+def get_map():
+    return jsonify(SIMULATOR.map)
+
+@app.route("/get_character_records")
+def get_character_records():
+    res = make_response(SIMULATOR.dump_character_records())
+    res.headers['Content-Type'] = "application/json"
+    return res
 
 @app.route("/scoreboard")
 @login_required
@@ -280,15 +299,15 @@ def get_map_path(round_num: int) -> str:
 def simulator(round_num):
     print(f"== Start to Simulator : Round {round_num} ==")
     # initialize
-    sim = Simulator(10)
-    sim.finished = False
-    sim.finished = False
+    SIMULATOR = Simulator(10)
+    SIMULATOR.finished = False
+    SIMULATOR.finished = False
 
     # read maps
     maps_path = get_map_path(round_num)
 
     print(f"[Simulator {round_num}] load maps path \'{maps_path}\'")
-    sim.read_map(maps_path)
+    SIMULATOR.read_map(maps_path)
 
     # load player scripts
     conn = get_connection()
@@ -304,16 +323,16 @@ def simulator(round_num):
 
     def simulate_all(sim: Simulator, total_rounds=200):
         for i in range(total_rounds):
-            sim.simulate()
-        sim.finished = True  
+            SIMULATOR.simulate()
+        SIMULATOR.finished = True  
 
     print(rows)
     for team_id, script in rows:
-        if 0 < team_id < len(sim.players):
-            sim.players[team_id - 1].script = script
+        if 0 < team_id < len(SIMULATOR.players):
+            SIMULATOR.players[team_id - 1].script = script
     
     # simulate it
-    t = threading.Thread(target=simulate_all, args=(sim,), daemon=True)
+    t = threading.Thread(target=simulate_all, args=(SIMULATOR,), daemon=True)
     t.start()
 
     # fetch result to json
@@ -330,10 +349,10 @@ def simulator(round_num):
     player_file = os.path.join(playerinfo_path, object_file)
     chest_file = os.path.join(chestinfo_path, object_file)
 
-    while not sim.finished:
+    while not SIMULATOR.finished:
 
-        player_data = sim.dump_character_records()
-        chest_data = sim.dump_chest_records()
+        player_data = SIMULATOR.dump_character_records()
+        chest_data = SIMULATOR.dump_chest_records()
 
         if isinstance(player_data, str):
             player_data = json.loads(player_data)
@@ -348,8 +367,8 @@ def simulator(round_num):
 
         time.sleep(1)
 
-    player_data = sim.dump_character_records()
-    chest_data = sim.dump_chest_records()
+    player_data = SIMULATOR.dump_character_records()
+    chest_data = SIMULATOR.dump_chest_records()
     if isinstance(player_data, str):
         player_data = json.loads(player_data)
     if isinstance(chest_data, str):
@@ -361,7 +380,7 @@ def simulator(round_num):
     with open(chest_file, "w", encoding="utf-8") as f:
         json.dump(chest_data, f, ensure_ascii=False, indent=2)
 
-    game_scores_list = sim.dump_scores()
+    game_scores_list = SIMULATOR.dump_scores()
     t.join()
 
     save_game_scores_to_db(round_num, game_scores_list)

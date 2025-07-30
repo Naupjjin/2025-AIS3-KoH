@@ -1,3 +1,8 @@
+// status: "running", "shutdown"
+const RUNNING = "running";
+const SHUTDOWN = "shutdown"
+const HOST = "http://127.0.0.1:48763"
+
 export class Start extends Phaser.Scene {
     constructor() {
         super('Start');
@@ -6,7 +11,7 @@ export class Start extends Phaser.Scene {
         this.map = Array.from({ length: 200 }, () =>
             Array.from({ length: 200 }, () => Math.random() > 0.8 ? 1 : 0)
         );
-
+        this.status = SHUTDOWN;
         this.dragStartPoint = null;
         this.camStartPoint = null;
     }
@@ -15,6 +20,7 @@ export class Start extends Phaser.Scene {
         this.load.image('path', 'assets/path.png');
         this.load.image('wall', 'assets/wall.png');
     }
+
 
     create() {
         const tileSize = 32;
@@ -54,8 +60,28 @@ export class Start extends Phaser.Scene {
             this.camStartPoint = null;
         });
     }
+    last_error_time = 0;
+    async get_round_info(){
+        try{
+            let r = await fetch(`${HOST}/round_info`).then(r=>r.json());
+            console.log(r);
+            if(r["status"]){
+                this.status = RUNNING;
+            }else{
+                this.last_error_time = Date.now();
+            }
+        }catch{
+            this.last_error_time = Date.now();
+        }
+    }
 
     update() {
-        // 不需要內容
+        /* Round start */
+        if(this.status == SHUTDOWN) {
+            if(Date.now() - this.last_error_time > 2000){
+                this.get_round_info();
+            } 
+            return
+        }
     }
 }

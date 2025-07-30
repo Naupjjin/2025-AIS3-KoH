@@ -1,2 +1,4 @@
 vm.lib
 .vscode
+__pycache__
+pgdata
