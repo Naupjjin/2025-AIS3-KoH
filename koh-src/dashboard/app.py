@@ -401,8 +401,14 @@ def round_status(round_num):
     if round_num > NOW_ROUND:
         status = "not_started"
     elif round_num == NOW_ROUND:
-        status = "pending" if count == 0 else "completed"
-    else: 
+        if PENDING == 1:
+            if count == 0:
+                status = "pending"
+            else:
+                status = "completed"
+        else:
+            status = "active"
+    else:
         status = "rejudge" if count == 0 else "completed"
 
     return {"round": round_num, "status": status}
@@ -454,8 +460,83 @@ def round_pending(round_num):
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
+
+@app.route("/admin/start_round/<int:round_num>")
+@login_required
+@admin_required
+def admin_start_round(round_num):
+    global PENDING
+    PENDING = 0
+    updates_round(round_num)
+    return jsonify({"status": "ok", "message": f"round {round_num} start!"})
+
+
+@app.route("/admin/pending/<int:round_num>")
+@login_required
+@admin_required
+def admin_pending(round_num):
+    global PENDING
+    PENDING = 1
+    updates_round(round_num)
+
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True  
+        t.start()
+        return jsonify({"status": "ok", "message": f"simulator startup for round {round_num}"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/admin/rejudge/<int:round_num>")
+@login_required
+@admin_required
+def admin_rejudge(round_num):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM game_history WHERE round = %s", (round_num,))
+    cur.execute("DELETE FROM scores WHERE round = %s", (round_num,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True
+        t.start()
+        return jsonify({"status": "ok", "message": f"rejudge round {round_num} started"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/admin/round_status/<int:round_num>")
+@login_required
+@admin_required
+def admin_round_status(round_num):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM scores WHERE round = %s", (round_num,))
+    count = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+
+    if round_num > NOW_ROUND:
+        status = "not_started"
+    elif round_num == NOW_ROUND:
+        if PENDING == 1:
+            if count == 0:
+                status = "pending"
+            else:
+                status = "completed"
+        else:
+            status = "active"
+    else:
+        status = "rejudge" if count == 0 else "completed"
+
+    return {"round": round_num, "status": status}
+
 if __name__ == "__main__":
     if NOW_ROUND == 1:
-        init_token_table()
+        # init_token_table()
         init_team_scripts()
     app.run(host="0.0.0.0", port=48763, debug=False)

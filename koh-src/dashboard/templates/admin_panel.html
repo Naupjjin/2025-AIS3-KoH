@@ -11,54 +11,157 @@
             margin: 0;
             padding: 20px;
         }
-        header {
-            margin-bottom: 2rem;
-        }
         h1 {
             font-size: 2rem;
             color: #f39c12;
         }
-        nav a {
-            color: #f39c12;
-            text-decoration: none;
-            margin-right: 15px;
-            font-weight: bold;
-        }
-        nav a:hover {
-            text-decoration: underline;
-        }
-        main {
+        .panel {
             background-color: #222;
-            padding: 15px;
+            padding: 20px;
             border-radius: 8px;
+            margin-top: 20px;
         }
-        .logout {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+        input {
+            padding: 5px;
+            width: 80px;
+        }
+        button {
+            padding: 6px 12px;
+            margin: 5px;
             background-color: #f39c12;
-            color: #121212;
             border: none;
-            padding: 8px 12px;
+            color: #121212;
             cursor: pointer;
+            border-radius: 4px;
             font-weight: bold;
-            border-radius: 5px;
         }
-        .logout:hover {
+        button:hover {
             background-color: #d35400;
             color: white;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            color: #0f0;
+            max-height: 300px;
+            overflow: auto;
+        }
+        table {
+            margin-top: 15px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Admin panel</h1>
-        <nav>
+    <h1>Admin Panel</h1>
 
-        </nav>
-    </header>
+    <!-- Round 控制 -->
+    <div class="panel">
+        <label for="round">Round:</label>
+        <input type="number" id="round" placeholder="1" min="1" />
+        <button onclick="callApi('start')">Start Round</button>
+        <button onclick="callApi('pending')">Pending + Simulator</button>
+        <button onclick="callApi('rejudge')">Rejudge</button>
+        <pre id="log"></pre>
+    </div>
 
-    <main>
-    </main>
+    <!-- Round 狀態查詢 -->
+    <div class="panel">
+        <h2>Round Status</h2>
+        <label>From:</label>
+        <input type="number" id="statusFrom" value="1" min="1" />
+        <label>To:</label>
+        <input type="number" id="statusTo" value="10" min="1" />
+        <button onclick="fetchRoundStatus()">Fetch Status</button>
+        <table id="statusTable">
+            <thead>
+                <tr>
+                    <th>Round</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function callApi(action) {
+            const round = document.getElementById("round").value;
+            if (!round) {
+                alert("請輸入 round number");
+                return;
+            }
+    
+            let endpoint;
+            if (action === "start") endpoint = `/admin/start_round/${round}`;
+            else if (action === "pending") endpoint = `/admin/pending/${round}`;
+            else if (action === "rejudge") endpoint = `/admin/rejudge/${round}`;
+    
+            try {
+                const res = await fetch(endpoint);
+                const data = await res.json();
+                document.getElementById("log").textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById("log").textContent = "Error: " + err;
+            }
+        }
+    
+        async function fetchRoundStatus() {
+            const from = parseInt(document.getElementById("statusFrom").value);
+            const to = parseInt(document.getElementById("statusTo").value);
+            const tbody = document.querySelector("#statusTable tbody");
+            tbody.innerHTML = "";
+    
+            for (let i = from; i <= to; i++) {
+                try {
+                    const res = await fetch(`/admin/round_status/${i}`);
+                    const data = await res.json();
+    
+                    const row = document.createElement("tr");
+                    const tdRound = document.createElement("td");
+                    tdRound.textContent = data.round;
+                    const tdStatus = document.createElement("td");
+                    tdStatus.textContent = data.status;
+    
+                    // 根據你的後端狀態字串對應顏色
+                    switch (data.status) {
+                        case "pending":
+                            tdStatus.style.color = "yellow";
+                            break;
+                        case "active":
+                            tdStatus.style.color = "lime";
+                            break;
+                        case "completed":
+                            tdStatus.style.color = "green";
+                            break;
+                        case "rejudge":
+                            tdStatus.style.color = "orange";
+                            break;
+                        case "not_started":
+                            tdStatus.style.color = "gray";
+                            break;
+                        default:
+                            tdStatus.style.color = "white";
+                    }
+    
+                    row.appendChild(tdRound);
+                    row.appendChild(tdStatus);
+                    tbody.appendChild(row);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        }
+    </script>
+    
 </body>
 </html>
