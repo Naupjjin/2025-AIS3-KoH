@@ -13,7 +13,7 @@ export class Start extends Phaser.Scene {
     tiles_sprite = [];
     scores = {};
     turn = 0;
-    scoreTextMap = {};
+    scoreTextMap = {};    last_track = 0;
     constructor() {
         super('Start');
 
@@ -22,14 +22,12 @@ export class Start extends Phaser.Scene {
             Array.from({ length: 200 }, () => 0)
         );
         this.status = SHUTDOWN;
-        this.dragStartPoint = null;
-        this.camStartPoint = null;
     }
 
     preload() {
         this.load.image('path', 'assets/path.png');
         this.load.image('wall', 'assets/wall.png');
-        for (let i = 1;i<=10;i++){
+        for (let i = 1; i <= 10; i++) {
             this.load.image(`character-${i}`, `assets/character-${i}.png`);
         }
         this.load.image('chest', 'assets/chest.png');
@@ -58,6 +56,8 @@ export class Start extends Phaser.Scene {
         this.key = this.input.keyboard.addKeys({
             plus: Phaser.Input.Keyboard.KeyCodes.PLUS,
             minus: Phaser.Input.Keyboard.KeyCodes.MINUS,
+            next: Phaser.Input.Keyboard.KeyCodes.ONE,
+            all: Phaser.Input.Keyboard.KeyCodes.TWO
         });
 
         this.start_game();
@@ -265,6 +265,29 @@ export class Start extends Phaser.Scene {
             if (this.turn > 0) this.turn--;
             console.log(this.turn);
         }
+        if (Phaser.Input.Keyboard.JustDown(this.key.next)) {
+            let keys = Object.keys(this.characters);
+            if (this.last_track > keys.length) {
+                this.last_track = 0
+            }
+            let sprite = this.characters[keys[this.last_track]].sprite;
+            while (!sprite.visible) {
+                this.last_track++;
+                this.last_track %= keys.length;
+                sprite = this.characters[keys[this.last_track]].sprite;
+            }
+            this.cameras.main.startFollow(sprite, false, 0.1, 0.1,
+                -displayTileSize / 2, -displayTileSize / 2);  // 追蹤角色
+            this.cameras.main.zoomTo(5, 500);
+            this.last_track++;
+            this.last_track %= keys.length;
+
+        } else if (this.key.all.isDown) {
+            this.cameras.main.stopFollow();
+            this.cameras.main.pan(640, 640, 500);
+            this.cameras.main.zoomTo(1, 500);
+        }
+
         for (let character of Object.values(this.characters)) {
             let x = character.spawn_x;
             let y = character.spawn_y;
