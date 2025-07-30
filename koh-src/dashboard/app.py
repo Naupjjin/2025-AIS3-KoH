@@ -185,6 +185,10 @@ def round_info():
 def get_map():
     return jsonify(SIMULATOR.map)
 
+@app.route("/get_scores")
+def get_scores():
+    return jsonify(SIMULATOR.dump_scores())
+
 @app.route("/get_character_records")
 def get_character_records():
     res = make_response(SIMULATOR.dump_character_records())

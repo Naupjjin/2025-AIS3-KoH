@@ -6,14 +6,14 @@ const HOST = "http://127.0.0.1:48763"
 const tileSize = 32;
 const scaleFactor = 0.8;
 const displayTileSize = tileSize * scaleFactor;
-const worldSize = 100 * displayTileSize;
-
 
 export class Start extends Phaser.Scene {
     characters = {};
     chests = {};
     tiles_sprite = [];
+    scores = {};
     turn = 0;
+    scoreTextMap = {};
     constructor() {
         super('Start');
 
@@ -49,7 +49,6 @@ export class Start extends Phaser.Scene {
         }
     }
 
-
     create() {
 
         this.create_map();
@@ -75,6 +74,24 @@ export class Start extends Phaser.Scene {
         this.chests = {};
     }
 
+    load_score() {
+        let startX = 20;
+        let startY = 20;
+        for (let id in this.scores) {
+            if (!this.scoreTextMap[id]) {
+                const text = this.add.text(startX, startY, `Player ${id}: ${this.scores[id]}`, {
+                    fontSize: '48px',
+                    color: '#ffffff'
+                }).setDepth(1000).setAlpha(0.7);
+                this.scoreTextMap[id] = text;
+            } else {
+                this.scoreTextMap[id].setText(`Player ${id}: ${this.scores[id]}`);
+
+            }
+            startY += 40;
+        }
+    }
+
     async start_game() {
         this.reset();
         await this.get_round_info();
@@ -97,15 +114,19 @@ export class Start extends Phaser.Scene {
         console.log(this.status)
         this.map = await this.get_map();
         this.create_map();
-
+        this.scores = await this.get_scores();
+        this.load_score();
         this.sync_character();
         this.sync_chest();
         this.sync_event = this.time.addEvent({
             delay: 3000, // 毫秒
-            callback: () => {
+            callback: async () => {
                 this.get_round_info();
                 this.sync_character();
                 this.sync_chest();
+                this.scores = await this.get_scores();
+                this.load_score();
+                console.log(this.scores);
             },
             callbackScope: this,
             loop: true
@@ -168,12 +189,12 @@ export class Start extends Phaser.Scene {
             if (r["status"]) {
                 this.status = RUNNING;
             } else {
-                if(this.status == RUNNING){
+                if (this.status == RUNNING) {
                     console.log("restart");
                     this.sync_event.remove();
                     this.status = SHUTDOWN;
                     this.start_game();
-                }else{
+                } else {
                     this.status = SHUTDOWN;
                 }
             }
@@ -185,6 +206,15 @@ export class Start extends Phaser.Scene {
         console.log("get map");
         try {
             let r = await fetch(`${HOST}/get_map`).then(r => r.json());
+            return r;
+        } catch {
+        }
+    }
+
+    async get_scores() {
+        console.log("get_scores");
+        try {
+            let r = await fetch(`${HOST}/get_scores`).then(r => r.json());
             return r;
         } catch {
         }
