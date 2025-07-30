@@ -24,9 +24,11 @@ class Chest:
     param = []
     result = []
     def reverse_chal(self):
-        self.param = [random.randint(0, 65536) for _ in range(5)]
-        self.result = self.param.reverse()
+        self.param = [random.randint(0, 65536) for _ in range(7)]
+        self.result = copy.deepcopy(self.param)
+        self.param.reverse()
         self.score = 30
+
     def sort_chal(self):
         self.param = [random.randint(0, 65536) for _ in range(7)]
         self.result = copy.deepcopy(self.param)
@@ -155,11 +157,9 @@ class Chest:
 
     def __init__(self, x: int, y: int):
         self.vm_chest = VM_Chest(x, y)
-        self.type = random.randrange(0, len(self.CHALS))
-        self.CHALS[self.type](self)
-
-    def interact():
-        return
+        self.type = 1
+        #self.type = random.randrange(1, len(self.CHALS)+1)
+        self.CHALS[self.type - 1](self)
     
     
 class Character:
@@ -174,7 +174,7 @@ class Character:
         self_x = self.vm_char.x 
         self_y = self.vm_char.y
         # surrounding cells
-        if self_x != x and self_y != y and abs(self_x - x) <= 1 and abs(self_y - y) <= 1:
+        if not (self_x == x and self_y == y) and abs(self_x - x) <= 1 and abs(self_y - y) <= 1:
             return True
         return False
 
@@ -424,6 +424,7 @@ class Simulator:
                 character_opcode += job.result()
         # do operations
         for player, character, opcode in character_opcode:
+            print(opcode)
             self.records[character].opcodes.append(opcode)
             match opcode:
                 case 1:
@@ -488,11 +489,41 @@ class Simulator:
 
     
 if __name__ == "__main__":
-    sim = Simulator(4)
+    sim = Simulator(1)
     sim.read_map("maps/map_01.txt")
     sim.players[0].script = '''
-loop:
-    je 0 0 loop
+    jg 50 #0 solve_chest
+open_chest:
+    ret #5
+solve_chest:
+    je 50 #1 solve_chal1
+    ret #0
+solve_chal1:
+    // swap(51, 57)
+    mov 72 51
+    mov 51 57
+    mov 57 72
 
+    mov 72 52
+    mov 52 56
+    mov 56 72
+
+    mov 72 53
+    mov 53 55
+    mov 55 72
+    je 0 0 end
+end:
+    ret #5
     '''
-    print(random.randrange(0,4))
+    char = sim.players[0].forks[0].vm_char
+    char.x = 0
+    char.y = 0
+    chest = sim.chests[0]
+    chest.vm_chest.x = 1
+    chest.vm_chest.y = 0
+    for i in range(2):
+        sim.simulate()
+        for i in range(8):
+            print(sim.players[0].forks[0].selfbuf[i], end=" ")
+            
+        print(sim.dump_scores())

@@ -102,15 +102,15 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
         return stoi(tok);
     };
 
-#define PARSE_OR_FAIL(VAR, EXPR)                           \
-    auto VAR = EXPR;                                       \
-    do                                                     \
-    {                                                      \
-        if (!VAR)                                          \
-        {                                                  \
-            printf("Failed parsing at line %d", __LINE__); \
-            return {INS_INVALID, 0, 0, 0};                 \
-        }                                                  \
+#define PARSE_OR_FAIL(VAR, EXPR)                             \
+    auto VAR = EXPR;                                         \
+    do                                                       \
+    {                                                        \
+        if (!VAR)                                            \
+        {                                                    \
+            printf("Failed parsing at line %d\n", __LINE__); \
+            return {INS_INVALID, 0, 0, 0};                   \
+        }                                                    \
     } while (0)
     switch (inst.opcode)
     {
@@ -215,11 +215,14 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
         if (tokens.size() < 3)
             return inst;
         PARSE_OR_FAIL(rdst, get_raw_num(tokens[1]));
-        if(tokens[2][0] == '#'){
+        if (tokens[2][0] == '#')
+        {
             PARSE_OR_FAIL(k, get_num(tokens[2], '#'));
             inst.opcode |= CONST_INST;
             inst.arg1 = k.value;
-        }else{
+        }
+        else
+        {
             PARSE_OR_FAIL(k, get_raw_num(tokens[2]));
             inst.arg1 = k.value;
         }
@@ -268,7 +271,8 @@ bool parse_opcode(
 
             // 檢查是否為 label
             size_t colon = line.find(':');
-            if (colon != std::string_view::npos)
+            bool is_comment = line.substr(0, 2) == "//";
+            if (colon != std::string_view::npos && !is_comment)
             {
                 std::string_view label = line.substr(0, colon);
 
@@ -281,7 +285,7 @@ bool parse_opcode(
                     labels[label] = pc;
                 }
             }
-            else
+            else if (!is_comment)
             {
                 pc++; // 只有非 label 行才算一條實際指令
             }
@@ -290,10 +294,12 @@ bool parse_opcode(
         }
     }
     {
+        int line_parsed = 0;
         size_t line_start = 0;
 
         while (line_start < opcode_str.size())
         {
+            line_parsed++;
             size_t line_end = opcode_str.find('\n', line_start);
             if (line_end == std::string_view::npos)
                 line_end = opcode_str.size();
@@ -318,7 +324,8 @@ bool parse_opcode(
 
             // 檢查是否為 label
             size_t colon = line.find(':');
-            if (colon != std::string_view::npos)
+            bool is_comment = line.substr(0, 2) == "//";
+            if (colon != std::string_view::npos || is_comment)
             {
                 line_start = line_end + 1;
                 continue;
@@ -326,6 +333,7 @@ bool parse_opcode(
             auto inst = parse_full_instruction(line, labels);
             if (inst.opcode == INS_INVALID)
             {
+                printf("Parse error at line '%d'\n", line_parsed);
                 return false;
             }
             instructions.push_back(inst);
@@ -391,7 +399,6 @@ int execute_opcode(
             return read_mem(addr);
         }
     };
-
     while (pc < (int)instructions.size())
     {
 
@@ -464,7 +471,6 @@ int execute_opcode(
         auto opcode = inst.opcode & ~CONST_INST;
         auto is_const = inst.opcode & CONST_INST;
         auto r = is_const ? inst.arg2 : read_mem(inst.arg2);
-
         switch (opcode)
         {
         case INS_MOV:
@@ -625,8 +631,8 @@ void debug_print_parsed(
 }
 
 extern "C" bool vm_parse_script(
-    const char script[]
-){
+    const char script[])
+{
     std::vector<Instruction> instructions;
     return parse_opcode(std::string(script), instructions);
 }
