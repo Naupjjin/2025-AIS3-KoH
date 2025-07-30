@@ -357,5 +357,5 @@ def round_pending(round_num):
 if __name__ == "__main__":
     init_token_table()
     init_team_scripts()
-    test_generate_random_game_scores()
+    # test_generate_random_game_scores()
     app.run(host="0.0.0.0", port=48763, debug=False)
