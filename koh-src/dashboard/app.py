@@ -13,6 +13,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulator.simulator import Simulator
 
+import logging
+
+class IgnoreSpecificRoutesFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if "/api/round_timer" in msg or "/api/current_round" in msg:
+            return False
+        return True
+
+logging.getLogger('werkzeug').addFilter(IgnoreSpecificRoutesFilter())
+
 SIMULATOR = Simulator(10)
 
 app = Flask(__name__)

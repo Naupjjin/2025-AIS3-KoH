@@ -22,6 +22,30 @@ label_left:
 ret #3
 '''
 
+move_test2 = '''
+je 0 #0 $down
+je 0 #1 $right
+je 0 #2 $up
+je 0 #3 $left
+
+$down:
+inc 0      
+ret #2     
+
+$right:
+inc 0
+ret #4   
+
+$up:
+inc 0
+ret #1    
+
+$left:
+inc 0
+mov 0 #0    
+ret #3        
+'''
+
 chest_test = '''
     jg 50 #0 solve_chest
 open_chest:
