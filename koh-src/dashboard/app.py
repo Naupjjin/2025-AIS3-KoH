@@ -326,13 +326,6 @@ def uploads():
         latest_script, latest_time = row
     return render_template("uploads.html", latest_script=latest_script, latest_time=latest_time)
 
-
-@app.route("/result/<int:round_num>")
-@login_required
-def get_result(round_num):
-    return f"/result : now round : {round_num}"
-
-
 ##### admin api
 
 def get_map_path(round_num: int) -> str:
