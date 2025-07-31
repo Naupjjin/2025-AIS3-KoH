@@ -33,7 +33,7 @@ API_KEY = "TOMORINISCUTETHISISAPIKEY"
 
 POSTGRES_USER = "koh-admin"
 POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2"
-PENDING = 0
+PENDING = 1
 
 NOW_ROUND = 1
 
@@ -623,6 +623,5 @@ def round_timer():
 
 if __name__ == "__main__":
     if NOW_ROUND == 1:
-        # init_token_table()
         init_team_scripts()
     app.run(host="0.0.0.0", port=48763, debug=False)
