@@ -26,6 +26,10 @@ POSTGRES_PASSWORD = "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94
 PENDING = 0
 
 NOW_ROUND = 1
+
+ROUND_DURATION = 5 * 60 
+ROUND_START_TIME = None  
+
 def updates_round(num):
     global NOW_ROUND
     NOW_ROUND = num
@@ -474,6 +478,8 @@ def round_start(round_num):
     updates_round(round_num)
     copy_last_round_scripts(round_num)
 
+    start_round_timer()
+
     return {"status": "ok", "message": f"round {round_num} start!"}
 
 
@@ -503,6 +509,8 @@ def admin_start_round(round_num):
     PENDING = 0
     updates_round(round_num)
     copy_last_round_scripts(round_num)
+
+    start_round_timer()
 
     return jsonify({"status": "ok", "message": f"round {round_num} start!"})
 
@@ -570,6 +578,25 @@ def admin_round_status(round_num):
         status = "rejudge" if count == 0 else "completed"
 
     return {"round": round_num, "status": status}
+
+def start_round_timer():
+    global ROUND_START_TIME
+    ROUND_START_TIME = time.time()
+
+
+@app.route("/api/round_timer")
+def round_timer():
+    if ROUND_START_TIME is None:
+        return jsonify({"status": "no_round_started"})
+    
+    elapsed = time.time() - ROUND_START_TIME
+    remaining = max(0, ROUND_DURATION - elapsed)
+    return jsonify({
+        "status": "running",
+        "elapsed_seconds": int(elapsed),
+        "remaining_seconds": int(remaining),
+        "expired": elapsed >= ROUND_DURATION
+    })
 
 if __name__ == "__main__":
     if NOW_ROUND == 1:
