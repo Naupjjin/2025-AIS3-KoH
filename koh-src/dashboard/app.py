@@ -17,7 +17,7 @@ import logging
 class IgnoreSpecificRoutesFilter(logging.Filter):
     def filter(self, record):
         msg = record.getMessage()
-        if "/api/round_timer" in msg or "/api/current_round" in msg:
+        if "/api/round_info" in msg:
             return False
         return True
 
@@ -193,12 +193,6 @@ def game_scores():
 
     return render_template("game_history.html", matrix=matrix, rounds=rounds, teams=teams)
 
-@app.route("/round_info")
-def round_info():
-    return jsonify({
-        "round": NOW_ROUND,
-        "status": bool(PENDING)
-    })
 
 @app.route("/get_map")
 def get_map():
@@ -607,7 +601,7 @@ def start_round_timer():
     ROUND_START_TIME = time.time()
 
 
-@app.route("/api/round_timer")
+@app.route("/api/round_info")
 def round_timer():
     if ROUND_START_TIME is None:
         return jsonify({"status": "no_round_started"})
@@ -616,16 +610,12 @@ def round_timer():
     remaining = max(0, ROUND_DURATION - elapsed)
     return jsonify({
         "status": "running",
+        "round": NOW_ROUND,
         "elapsed_seconds": int(elapsed),
         "remaining_seconds": int(remaining),
         "expired": elapsed >= ROUND_DURATION
     })
-    
-@app.route("/api/current_round")
-def get_current_round():
-    return jsonify({
-        "round": NOW_ROUND
-    })
+
 
 
 if __name__ == "__main__":

@@ -87,10 +87,9 @@
 </style>
 
 <script>
-    let timeData = {
-        "status": "no_round_started"
-    };
+
     let roundData = {
+        "status": "no_round_started",
         "round": "?"
     };
     async function updateRoundTimer() {
@@ -98,19 +97,21 @@
         const roundText = document.getElementById("round-info");
 
 
-        roundText.textContent = `Round ${roundData.round}`;
 
-        if (timerData.status === "no_round_started") {
+        if (roundData.status === "no_round_started") {
+            roundText.textContent = `Round ?`;
             timerText.textContent = "No round started";
             timerText.style.color = "#888";
-        } else if (timerData.expired) {
+        } else if (roundData.expired) {
+            roundText.textContent = `Round ${roundData.round}`;
             timerText.textContent = "Round Ended";
             timerText.style.color = "#ff4444";
         } else {
-            timerData.remaining_seconds--;
-            let remaining = timerData.remaining_seconds;
+            roundText.textContent = `Round ${roundData.round}`;
+            roundData.remaining_seconds--;
+            let remaining = roundData.remaining_seconds;
             if (remaining < 0) {
-                timeData.expired = true;
+                roundData.expired = true;
                 return
             }
             let minutes = Math.floor(remaining / 60);
@@ -127,13 +128,11 @@
             }
         }
     }
-    fetch("/api/round_timer").then(r => r.json()).then(r => timerData = r);
-    fetch("/api/current_round").then(r => r.json()).then(r => roundData = r);
+    fetch("/api/round_info").then(r => r.json()).then(r => roundData = r);
     // 每秒更新一次
     setInterval(updateRoundTimer, 1000);
     setInterval(() => {
-        fetch("/api/round_timer").then(r => r.json()).then(r => timerData = r);
-        fetch("/api/current_round").then(r => r.json()).then(r => roundData = r);
+        fetch("/api/round_info").then(r => r.json()).then(r => roundData = r);
     }, 10000);
 
     updateRoundTimer();

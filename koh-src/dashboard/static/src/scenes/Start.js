@@ -216,9 +216,10 @@ export class Start extends Phaser.Scene {
     async get_round_info() {
         console.log("get round info");
         try {
-            let r = await fetch(`${HOST}/round_info`).then(r => r.json());
-            if (r["status"]) {
+            let r = await fetch(`${HOST}/api/round_info`).then(r => r.json());
+            if (r["status"] == "running" && !r["expired"]) {
                 this.status = RUNNING;
+                this.turn = Math.min(200, Math.floor(r["elapsed_seconds"] / 1.5));
             } else {
                 if (this.status == RUNNING) {
                     console.log("restart");
