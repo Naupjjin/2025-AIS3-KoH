@@ -358,10 +358,19 @@ def simulator(round_num):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT teamid, scripts 
-        FROM scripts
-        WHERE round = %s
-    """, (round_num,))
+        SELECT s.teamid, s.scripts
+        FROM scripts s
+        JOIN (
+            SELECT teamid, MAX(upload_time) AS latest_upload
+            FROM scripts
+            WHERE round <= %s
+            GROUP BY teamid
+        ) latest
+        ON s.teamid = latest.teamid AND s.upload_time = latest.latest_upload
+    """, (round_num - 1,))
+    rows = cur.fetchall()
+
+
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -484,11 +493,18 @@ def round_start(round_num):
     global PENDING
     PENDING = 0
     updates_round(round_num)
+
     copy_last_round_scripts(round_num)
 
     start_round_timer()
 
-    return {"status": "ok", "message": f"round {round_num} start!"}
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True  
+        t.start()
+        return {"status": "ok", "message": f"simulator startup for round {round_num}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 
 
@@ -500,70 +516,10 @@ def round_pending(round_num):
     updates_round(round_num)
 
     ROUND_START_TIME = time.time() - ROUND_DURATION
-
-    ### Start Simulator
-    try:
-        t = threading.Thread(target=simulator, args=(round_num,))
-        t.daemon = True  
-        t.start()
-        return {"status": "ok", "message": f"simulator startup for round {round_num}"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}, 500
+    return {"status": "ok", "message": f"pending {round_num}"}
 
 
-@app.route("/admin/start_round/<int:round_num>")
-@login_required
-@admin_required
-def admin_start_round(round_num):
-    global PENDING
-    PENDING = 0
-    updates_round(round_num)
-    copy_last_round_scripts(round_num)
-
-    start_round_timer()
-
-    return jsonify({"status": "ok", "message": f"round {round_num} start!"})
-
-
-@app.route("/admin/pending/<int:round_num>")
-@login_required
-@admin_required
-def admin_pending(round_num):
-    global PENDING, ROUND_START_TIME
-    PENDING = 1
-    updates_round(round_num)
-
-    ROUND_START_TIME = time.time() - ROUND_DURATION
-    ### Start Simulator
-    try:
-        t = threading.Thread(target=simulator, args=(round_num,))
-        t.daemon = True  
-        t.start()
-        return jsonify({"status": "ok", "message": f"simulator startup for round {round_num}"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
-@app.route("/admin/rejudge/<int:round_num>")
-@login_required
-@admin_required
-def admin_rejudge(round_num):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM game_history WHERE round = %s", (round_num,))
-    cur.execute("DELETE FROM scores WHERE round = %s", (round_num,))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    try:
-        t = threading.Thread(target=simulator, args=(round_num,))
-        t.daemon = True
-        t.start()
-        return jsonify({"status": "ok", "message": f"rejudge round {round_num} started"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
+#####
 
 @app.route("/admin/round_status/<int:round_num>")
 @login_required
@@ -591,6 +547,61 @@ def admin_round_status(round_num):
 
     return {"round": round_num, "status": status}
 
+@app.route("/admin/rejudge/<int:round_num>")
+@login_required
+@admin_required
+def admin_rejudge(round_num):
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM game_history WHERE round = %s", (round_num,))
+    cur.execute("DELETE FROM scores WHERE round = %s", (round_num,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True
+        t.start()
+        return {"status": "ok", "message": f"rejudge round {round_num} started"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route("/admin/start_round/<int:round_num>")
+@login_required
+@admin_required
+def admin_round_start(round_num):
+    global PENDING
+    PENDING = 0
+    updates_round(round_num)
+
+    copy_last_round_scripts(round_num)
+
+    start_round_timer()
+
+    try:
+        t = threading.Thread(target=simulator, args=(round_num,))
+        t.daemon = True  
+        t.start()
+        return {"status": "ok", "message": f"simulator startup for round {round_num}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+
+
+@app.route("/admin/pending/<int:round_num>")
+@login_required
+@admin_required
+def admin_round_pending(round_num):
+    global PENDING, ROUND_START_TIME
+    PENDING = 1
+    updates_round(round_num)
+
+    ROUND_START_TIME = time.time() - ROUND_DURATION
+    return {"status": "ok", "message": f"pending {round_num}"}
+
+
 def start_round_timer():
     global ROUND_START_TIME
     ROUND_START_TIME = time.time()
@@ -609,6 +620,7 @@ def round_timer():
         "remaining_seconds": int(remaining),
         "expired": elapsed >= ROUND_DURATION
     })
+    
 @app.route("/api/current_round")
 def get_current_round():
     return jsonify({
