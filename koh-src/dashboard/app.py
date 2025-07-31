@@ -24,6 +24,7 @@ class IgnoreSpecificRoutesFilter(logging.Filter):
 logging.getLogger('werkzeug').addFilter(IgnoreSpecificRoutesFilter())
 
 SIMULATOR = Simulator(10)
+SIMULATOR.finished = True
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -214,6 +215,12 @@ def get_chest_records():
     res.headers['Content-Type'] = "application/json"
     return res
 
+@app.route("/get_score_records")
+def get_score_records():
+    res = make_response(SIMULATOR.dump_score_records())
+    res.headers['Content-Type'] = "application/json"
+    return res
+
 @app.route("/scoreboard")
 @login_required
 def scoreboard():
@@ -340,7 +347,6 @@ def simulator(round_num):
     # initialize
     SIMULATOR = Simulator(10)
     SIMULATOR.finished = False
-    SIMULATOR.finished = False
 
     # read maps
     maps_path = get_map_path(round_num)
@@ -364,8 +370,7 @@ def simulator(round_num):
     """, (round_num - 1,))
     rows = cur.fetchall()
 
-
-    rows = cur.fetchall()
+    print(rows)
     cur.close()
     conn.close()
 
@@ -378,7 +383,6 @@ def simulator(round_num):
     for team_id, script in rows:
         if 0 < team_id and team_id <= len(SIMULATOR.players):
             SIMULATOR.players[team_id - 1].script = script
-    
     # simulate it
     t = threading.Thread(target=simulate_all, args=(SIMULATOR,), daemon=True)
     t.start()
@@ -450,10 +454,7 @@ def round_status(round_num):
         status = "not_started"
     elif round_num == NOW_ROUND:
         if PENDING == 1:
-            if count == 0:
-                status = "pending"
-            else:
-                status = "completed"
+            status = "pending"
         else:
             status = "active"
     else:
@@ -603,8 +604,9 @@ def start_round_timer():
 
 @app.route("/api/round_info")
 def round_timer():
+    global NOW_ROUND
     if ROUND_START_TIME is None:
-        return jsonify({"status": "no_round_started"})
+        return jsonify({"status": "no_round_started", "round": NOW_ROUND})
     
     elapsed = time.time() - ROUND_START_TIME
     remaining = max(0, ROUND_DURATION - elapsed)
@@ -613,7 +615,8 @@ def round_timer():
         "round": NOW_ROUND,
         "elapsed_seconds": int(elapsed),
         "remaining_seconds": int(remaining),
-        "expired": elapsed >= ROUND_DURATION
+        "expired": elapsed >= ROUND_DURATION,
+        "simulate_finished": SIMULATOR.finished
     })
 
 

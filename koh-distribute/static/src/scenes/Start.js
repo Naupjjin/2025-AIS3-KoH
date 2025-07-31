@@ -11,10 +11,12 @@ export class Start extends Phaser.Scene {
     characters = {};
     chests = {};
     tiles_sprite = [];
-    scores = {};
+    scores = { "1": [], "2": [], "3": [], "4": [], "5": [], "6": [], "7": [], "8": [], "9": [], "10": [], };
     turn = 0;
-    scoreTextMap = {};    last_track = 0;
+    scoreTextMap = {}; last_track = 0;
     turn_text = null;
+    elasped_time = 0;
+    pixel_textures = [];
     constructor() {
         super('Start');
 
@@ -22,15 +24,17 @@ export class Start extends Phaser.Scene {
         this.map = Array.from({ length: 50 }, () =>
             Array.from({ length: 50 }, () => 0)
         );
-        this.status = SHUTDOWN;
+        this.status = RUNNING;
     }
 
     preload() {
         this.load.image('path', 'static/assets/path.png');
         this.load.image('wall', 'static/assets/wall.png');
         for (let i = 1; i <= 10; i++) {
+            this.pixel_textures.push(`character-${i}`)
             this.load.image(`character-${i}`, `static/assets/character-${i}.png`);
         }
+        this.pixel_textures.push("chest")
         this.load.image('chest', 'static/assets/chest.png');
     }
 
@@ -57,6 +61,7 @@ export class Start extends Phaser.Scene {
         this.key = this.input.keyboard.addKeys({
             plus: Phaser.Input.Keyboard.KeyCodes.PLUS,
             minus: Phaser.Input.Keyboard.KeyCodes.MINUS,
+            shift: Phaser.Input.Keyboard.KeyCodes.SHIFT,
             next: Phaser.Input.Keyboard.KeyCodes.ONE,
             all: Phaser.Input.Keyboard.KeyCodes.TWO
         });
@@ -92,36 +97,55 @@ export class Start extends Phaser.Scene {
             "#c92067",
             "#20c955"
         ]
-        for (let id in this.scores) {
+        for (let id of Object.keys(this.scores)) {
+            let s = this.turn < this.scores[id].length ? this.scores[id][this.turn] : 0;
             if (!this.scoreTextMap[id]) {
-                const text = this.add.text(startX, startY, `Player ${id}: ${this.scores[id]}`, {
+                const text = this.add.text(startX, startY, `Player ${id}: ${s}`, {
                     fontSize: '32px',
                     color: color[id - 1]
                 }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
                 this.scoreTextMap[id] = text;
             } else {
-                this.scoreTextMap[id].setText(`Player ${id}: ${this.scores[id]}`);
-
+                this.scoreTextMap[id].setText(`Player ${id}: ${s}`);
             }
             startY += 32;
         }
+        if (!this.turn_text) {
+            this.turn_text = this.add.text(startX, startY, `Turn ${this.turn}`, {
+                fontSize: '32px',
+                color: "#ffffff"
+            }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
+        }
+    }
+
+    restart() {
+        console.log("restart");
+        if (this.sync_event) {
+            this.sync_event.remove();
+        }
+        this.status = SHUTDOWN;
+        this.start_event = this.time.addEvent({
+            delay: 5000, // 毫秒
+            callback: this.start_game,
+            callbackScope: this,
+            loop: true
+        });
     }
 
     async start_game() {
         this.reset();
-        await this.get_round_info();
-        if (this.status == SHUTDOWN) {
-            if (!this.start_event) {
-                this.start_event = this.time.addEvent({
-                    delay: 2000, // 毫秒
-                    callback: this.start_game,
-                    callbackScope: this,
-                    loop: true
-                });
+        let r = await fetch(`${HOST}/api/round_info`).then(r => r.json());
+        if (r["status"] == "running" && !r["expired"]) {
+            this.status = RUNNING;
+        } else {
+            if (this.status == RUNNING) {
+                this.restart();
+            } else {
+                this.status = SHUTDOWN;
             }
-
             return;
         }
+
         if (this.start_event) {
             this.start_event.remove();
             this.start_event = null;
@@ -129,19 +153,23 @@ export class Start extends Phaser.Scene {
         console.log(this.status)
         this.map = await this.get_map();
         this.create_map();
-        this.scores = await this.get_scores();
+        this.sync_score();
         this.load_score();
         this.sync_character();
         this.sync_chest();
         this.sync_event = this.time.addEvent({
-            delay: 3000, // 毫秒
+            delay: 1000, // 毫秒
             callback: async () => {
-                this.get_round_info();
-                this.sync_character();
-                this.sync_chest();
-                this.scores = await this.get_scores();
-                this.load_score();
-                console.log(this.scores);
+                let r = await fetch(`${HOST}/api/round_info`).then(r => r.json());
+                if (r["status"] != "running" || r["expired"]) {
+                    this.restart();
+                    return;
+                }
+                if (!r["simulate_finished"]) {
+                    this.sync_character();
+                    this.sync_chest();
+                    this.sync_score();
+                }
             },
             callbackScope: this,
             loop: true
@@ -149,7 +177,8 @@ export class Start extends Phaser.Scene {
     }
 
     async sync_character() {
-        let records = await this.get_character_records();
+        console.log("sync character");
+        let records = await fetch(`${HOST}/get_character_records`).then(r => r.json());
         let i = 1;
         for (const [player, charList] of Object.entries(records)) {
             for (const char of charList) {
@@ -163,7 +192,7 @@ export class Start extends Phaser.Scene {
                         dead_turn: char.dead_turn,
                         sprite: this.add.image(
                             char.spawn_x * displayTileSize - displayTileSize / 2,
-                            char.spawn_y * displayTileSize - displayTileSize / 2,
+                            char.spawn_y * displayTileSize - displayTileSize,
                             `character-${i}`
                         ).setScale(scaleFactor).setOrigin(0)
                     };
@@ -178,7 +207,8 @@ export class Start extends Phaser.Scene {
     }
 
     async sync_chest() {
-        let records = await this.get_chest_records();
+        console.log("sync chest");
+        let records = await fetch(`${HOST}/get_chest_records`).then(r => r.json());
         for (const chest of records) {
             if (!this.chests[chest.cid]) {
                 this.chests[chest.cid] = {
@@ -199,24 +229,11 @@ export class Start extends Phaser.Scene {
         }
         console.log(records);
     }
-    async get_round_info() {
-        console.log("get round info");
-        try {
-            let r = await fetch(`${HOST}/round_info`).then(r => r.json());
-            if (r["status"]) {
-                this.status = RUNNING;
-            } else {
-                if (this.status == RUNNING) {
-                    console.log("restart");
-                    this.sync_event.remove();
-                    this.status = SHUTDOWN;
-                    this.start_game();
-                } else {
-                    this.status = SHUTDOWN;
-                }
-            }
-        } catch {
-        }
+    async sync_score() {
+        console.log("sync score");
+        let records = await fetch(`${HOST}/get_score_records`).then(r => r.json());
+        this.scores = records;
+        console.log(this.scores);
     }
 
     async get_map() {
@@ -228,46 +245,37 @@ export class Start extends Phaser.Scene {
         }
     }
 
-    async get_scores() {
-        console.log("get_scores");
-        try {
-            let r = await fetch(`${HOST}/get_scores`).then(r => r.json());
-            return r;
-        } catch {
-        }
-    }
-
-    async get_character_records() {
-        console.log("get_character_records");
-        try {
-            let r = await fetch(`${HOST}/get_character_records`).then(r => r.json());
-            return r;
-        } catch {
-        }
-    }
-
-    async get_chest_records() {
-        console.log("get_chest_records");
-        try {
-            let r = await fetch(`${HOST}/get_chest_records`).then(r => r.json());
-            return r;
-        } catch {
-        }
-    }
 
     check_movable(x, y) {
         return x >= 0 && x < 50 && y >= 0 && y < 50 && this.map[y][x] == 0;
     }
-    update() {
+    cooldown = 100;
+    last_pressed = 0;
+    update(time) {
         if (this.key.plus.isDown) {
-            if (this.turn < 200) this.turn++;
-            console.log(this.turn);
+            if (time - this.last_pressed > this.cooldown) {
+                if (this.key.shift.isDown) {
+                    this.turn = Math.min(200, this.turn + 10);
+                } else {
+                    this.turn = Math.min(200, this.turn + 1);
+                }
+                this.last_pressed = time
+            }
         } else if (this.key.minus.isDown) {
-            if (this.turn > 0) this.turn--;
-            console.log(this.turn);
+            if (time - this.last_pressed > this.cooldown) {
+                if (this.key.shift.isDown) {
+                    this.turn = Math.max(0, this.turn - 10);
+                } else {
+                    this.turn = Math.max(0, this.turn - 1);
+                }
+                this.last_pressed = time
+            }
         }
         if (Phaser.Input.Keyboard.JustDown(this.key.next)) {
             let keys = Object.keys(this.characters);
+            for (let tex of this.pixel_textures){
+                this.textures.get(tex).setFilter(Phaser.Textures.FilterMode.NEAREST);
+            }
             if (this.last_track > keys.length) {
                 this.last_track = 0
             }
@@ -278,12 +286,15 @@ export class Start extends Phaser.Scene {
                 sprite = this.characters[keys[this.last_track]].sprite;
             }
             this.cameras.main.startFollow(sprite, false, 0.1, 0.1,
-                -displayTileSize / 2, -displayTileSize / 2);  // 追蹤角色
+                -displayTileSize / 2, -displayTileSize);  // 追蹤角色
             this.cameras.main.zoomTo(5, 500);
             this.last_track++;
             this.last_track %= keys.length;
 
         } else if (this.key.all.isDown) {
+            for (let tex of this.pixel_textures){
+                this.textures.get(tex).setFilter(Phaser.Textures.FilterMode.LINEAR);
+            }
             this.cameras.main.stopFollow();
             this.cameras.main.pan(640, 640, 500);
             this.cameras.main.zoomTo(1, 500);
@@ -320,7 +331,7 @@ export class Start extends Phaser.Scene {
             character.sprite
                 .setPosition(
                     x * displayTileSize - displayTileSize / 2,
-                    y * displayTileSize - displayTileSize / 2);
+                    y * displayTileSize - displayTileSize);
         }
         for (let chest of Object.values(this.chests)) {
             if (this.turn < chest.spawn_turn || (chest.opened_turn != -1 && this.turn > chest.opened_turn)) {
@@ -329,13 +340,11 @@ export class Start extends Phaser.Scene {
                 chest.sprite.setVisible(true);
             }
         }
-        if(!this.turn_text){
-            this.turn_text = this.add.text(20, 64, `Turn ${this.turn}`, {
-                    fontSize: '32px',
-                    color: "#ffffff"
-                }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
-        }else{
-            this.turn_text.setText(`Turn ${this.turn}`);`Turn ${this.turn}`
+        this.load_score();
+
+        if (this.turn_text) {
+            this.turn_text.setText(`Turn ${this.turn}`); `Turn ${this.turn}`
         }
+
     }
 }

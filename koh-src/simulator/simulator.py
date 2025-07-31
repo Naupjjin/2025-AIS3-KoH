@@ -41,7 +41,7 @@ class Chest:
         self.score = 40
     
     def point_addition_chal(self):
-        self.score = 50
+        self.score = 60
 
         # y^2 = x^3 + a*x + b (mod p)
         p = 9739
@@ -97,7 +97,7 @@ class Chest:
         self.result = [R[0], R[1]]
 
     def rsa_chal(self):
-        self.score = 60
+        self.score = 50
 
         def is_prime(n):
             if n < 2:
@@ -215,7 +215,7 @@ class Player:
         self.script = script
         self.forks = [Character(0, 0, False)]
         self.score = 0
-        self.fork_cost = 10
+        self.fork_cost = 70
         pass
 class CharacterRecord:
     team_num: int
@@ -243,9 +243,18 @@ class ChestRecord:
         self.spawn_turn = spawn_turn
         pass
 
+class ScoreRecord:
+    team_id: int
+    scores: list[int]
+    def __init__(self, team_id):
+        self.team_id = team_id
+        self.scores = [0]
+        pass
+
+
 
 MOVE_SCORE = 1
-KILL_FORK_SCORE = 50
+KILL_FORK_SCORE = 40
 KILL_PLAYER_SCORE = 70
 
 PATH = 0
@@ -259,6 +268,7 @@ class Simulator:
     chests: list[Chest]
     char_records: dict[Character, CharacterRecord]
     chest_records: dict[Chest, ChestRecord]
+    score_records: dict[Player, ScoreRecord]
     turn: int = 0
     def __init__(self, team_num):
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -293,10 +303,6 @@ class Simulator:
         last_cid = 0
         maps = glob.glob(os.path.join(self.base_dir, "maps/*.txt"))
         self.read_map(random.choice(maps))
-        self.players = []
-        self.chests = []
-        self.char_records = {}
-        self.chest_records = {}
 
     def read_map(self, map: str):
         self.map = [[0 for i in range(MAP_SIZE)] for j in range(MAP_SIZE)]
@@ -329,6 +335,10 @@ class Simulator:
             player_char.spawn(self.map)
             self.char_records[player_char] = CharacterRecord(i, player_char.vm_char.x, player_char.vm_char.y, self.turn)
         pass
+        self.score_records = {}
+        for p in self.players:
+            self.score_records[p] = ScoreRecord(p.id) 
+
     def set_script(self, id: int, script: str):
         if id > len(self.players):
             return
@@ -388,10 +398,10 @@ class Simulator:
             return 
         if player.score >= player.fork_cost:
             new_char = Character(character.vm_char.x, character.vm_char.y, True)
+            self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
             player.forks.append(new_char)
             player.score -= player.fork_cost
-            player.fork_cost *= 2
-            self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
+            player.fork_cost *= 1.2
             print("fork")
         return
     
@@ -427,10 +437,21 @@ class Simulator:
         for player in self.players:
             scores[player.id] = player.score
         return scores
+    
+    def dump_score_records(self):
+        records = {}
+        for key, value in self.score_records.items():
+            records[key.id] = value.scores
+        return records
 
     def simulate(self):
         character_num = 0
         self.turnmap = copy.deepcopy(self.map)
+        if self.turn % 10 == 0:
+            for i in range(2):
+                new_chest = Chest(self.map)
+                self.chests.append(new_chest)
+                self.chest_records[new_chest] = ChestRecord(new_chest.vm_chest.x, new_chest.vm_chest.y, self.turn)
         # fill map data
         for chest in self.chests:
             self.turnmap[chest.vm_chest.y][chest.vm_chest.x] |= CHEST
@@ -520,17 +541,23 @@ class Simulator:
                     fork.move_to = None
                 if fork.health <= 0:
                     for attacker in fork.last_attackers:
+                        player.forks.remove(fork)
+                        self.char_records[fork].dead_turn = self.turn
                         if fork.is_fork:
                             attacker.score += KILL_FORK_SCORE
-                            player.forks.remove(fork)
-                            self.char_records[fork].dead_turn = self.turn
                         else:
                             attacker.score += KILL_PLAYER_SCORE
+
                     if not fork.is_fork:
-                        fork.spawn(self.map)
+                        # respawn
+                        new_char = Character(0, 0, False)
+                        new_char.spawn(self.map)
+                        self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
+                        player.forks.append(new_char)
                 fork.last_attackers.clear()
 
-
+        for p in self.players:
+            self.score_records[p].scores.append(p.score)
         self.turn += 1
         return
 

@@ -1,33 +1,55 @@
 from flask import Flask, render_template, request, make_response, redirect, send_from_directory, url_for, flash,  abort, jsonify
 import os
 import threading
-from flask_cors import CORS
+import time
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from simulator import Simulator
 
+import logging
+
+class IgnoreSpecificRoutesFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if "/api/round_info" in msg:
+            return False
+        return True
+
+logging.getLogger('werkzeug').addFilter(IgnoreSpecificRoutesFilter())
+
+
 SIMULATOR = Simulator(1)
 SIMULATE_START = False
+ROUND_DURATION = 300
+ROUND_START_TIME = None
+NOW_ROUND = 0
 STORED_SCRIPT = "ret #0"
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
-CORS(app)
 
 @app.route("/")
 def root():
     return render_template("game.html")
 
 
-
-@app.route("/round_info")
-def round_info():
+@app.route("/api/round_info")
+def round_timer():
+    global NOW_ROUND, ROUND_START_TIME, ROUND_DURATION, NOW_ROUND
+    if ROUND_START_TIME is None:
+        return jsonify({"status": "no_round_started", "round": NOW_ROUND})
+    
+    elapsed = time.time() - ROUND_START_TIME
+    remaining = max(0, ROUND_DURATION - elapsed)
     return jsonify({
-        "round": 0,
-        "status": SIMULATE_START,
-        "local": True
+        "status": "running",
+        "round": NOW_ROUND,
+        "elapsed_seconds": int(elapsed),
+        "remaining_seconds": int(remaining),
+        "expired": elapsed >= ROUND_DURATION,
+        "simulate_finished": SIMULATOR.finished
     })
 
 @app.route("/get_map")
@@ -50,6 +72,11 @@ def get_chest_records():
     res.headers['Content-Type'] = "application/json"
     return res
 
+@app.route("/get_score_records")
+def get_score_records():
+    res = make_response(SIMULATOR.dump_score_records())
+    res.headers['Content-Type'] = "application/json"
+    return res
 
 
 @app.route("/uploads", methods=["GET", "POST"])
@@ -79,9 +106,8 @@ def uploads():
 
 @app.route("/start_simulate")
 def start_simulate():
-    global SIMULATOR
-    global SIMULATE_START
-    SIMULATE_START = True
+    global SIMULATOR, ROUND_START_TIME
+    ROUND_START_TIME = time.time()
     print(f"== Start to Simulator ==")
     # initialize
     SIMULATOR = Simulator(1)
