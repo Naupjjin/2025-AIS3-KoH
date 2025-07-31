@@ -63,9 +63,7 @@
     {% include "sidebar.html" %}
     <div class="content markdown-body">
         <h1>Mortis GO!!!!!</h1>
-        <a href="https://hackmd.io/@naup96321/Skz2n5_Dex">
-            hackmd version
-        </a>
+        <p><a href="https://hackmd.io/@naup96321/SkBEFdDwgl">Hackmd Version</a></p>
         <p>小睦因為太久沒上學所以跟不上進度，只好分裂出多重人格找小祥補進度
         小祥會給小睦的不同人格題目，解出來就能獲得分數
         或是也可以選擇幹掉其他的人格，在多重人格大逃殺中吃雞</p>
@@ -147,13 +145,6 @@
         <li>buf[0] ~ buf[49] 玩家與分身共用，會繼承</li>
         <li>buf[50] ~ buf[57] 玩家及分身自己用，會繼承</li>
         <li>buf[58] ~ buf[99] 玩家及分身自己用，不會繼承</li>
-        <li>buf[58] pid 若為 fork，則 pid = 0</li>
-        <li>buf[60] ~ buf[67] 周遭 8 格的資訊，從上面一格順時鐘填入<ul>
-        <li>資訊透過 or 將周遭資訊填入</li>
-        <li>WALL = 1, CHEST = 2, CHARACTER = 4</li>
-        <li>ex: 同一格有角色同時有箱子, 則 buf[60] 的值是 6</li>
-        </ul>
-        </li>
         </ul>
         <h2>地圖</h2>
         <p>每 5 round 會刷新地圖 (ex: 1~5 round 為第一張、6~10 為第二張，以此類推)
@@ -161,8 +152,8 @@
         <ul>
         <li>按 <code>1</code> 可以追蹤一個玩家</li>
         <li>按 <code>2</code> 回到全地圖</li>
-        <li>按 <code>+</code> 可以看到下一 turn</li>
-        <li>按 <code>-</code> 可以看到上一 turn</li>
+        <li>按 <code>+</code> 可以看到下一 turn (本地測試提供)</li>
+        <li>按 <code>-</code> 可以看到上一 turn (本地測試提供)</li>
         <li>按 <code>shift</code> 和 <code>+</code> 可以加速進行 (本地測試提供)</li>
         </ul>
         <h2>指令</h2>
@@ -346,6 +337,14 @@
         <tr>
         <td><code>load_score &lt;mem1&gt;</code></td>
         <td>將當前分數載入 <code>mem1</code></td>
+        </tr>
+        <tr>
+        <td><code>load_loc &lt;mem1&gt;</code></td>
+        <td>載入當前 (x,y) 至 <code>mem1</code></td>
+        </tr>
+        <tr>
+        <td><code>load_map &lt;mem1&gt; &lt;mem2&gt; &lt;mem3&gt;</code></td>
+        <td>將 map(mem2,mem3) 載入 mem1</td>
         </tr>
         <tr>
         <td><code>get_id &lt;mem1&gt;</code></td>
