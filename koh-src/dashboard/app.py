@@ -487,9 +487,11 @@ def round_start(round_num):
 @app.route("/api/pending/<int:round_num>")
 @api_key_required
 def round_pending(round_num):
-    global PENDING
+    global PENDING, ROUND_START_TIME
     PENDING = 1
     updates_round(round_num)
+
+    ROUND_START_TIME = time.time() - ROUND_DURATION
 
     ### Start Simulator
     try:
@@ -519,10 +521,12 @@ def admin_start_round(round_num):
 @login_required
 @admin_required
 def admin_pending(round_num):
-    global PENDING
+    global PENDING, ROUND_START_TIME
     PENDING = 1
     updates_round(round_num)
 
+    ROUND_START_TIME = time.time() - ROUND_DURATION
+    ### Start Simulator
     try:
         t = threading.Thread(target=simulator, args=(round_num,))
         t.daemon = True  
@@ -597,6 +601,12 @@ def round_timer():
         "remaining_seconds": int(remaining),
         "expired": elapsed >= ROUND_DURATION
     })
+@app.route("/api/current_round")
+def get_current_round():
+    return jsonify({
+        "round": NOW_ROUND
+    })
+
 
 if __name__ == "__main__":
     if NOW_ROUND == 1:

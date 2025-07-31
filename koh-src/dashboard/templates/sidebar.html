@@ -1,6 +1,7 @@
 <!-- templates/sidebar.html -->
 <div class="sidebar">
-    <h3>Menu</h3>
+    <div id="round-info" class="round-info">Loading Round...</div>
+    <div id="round-timer" class="round-timer">Loading...</div>
     <ul>
         <li><a href="{{ url_for('home') }}">Home</a></li>
         <li><a href="{{ url_for('game_scores') }}">Game History</a></li>
@@ -17,43 +18,117 @@
         top: 0;
         left: 0;
         height: 100vh;
-        width: 180px;
-        background-color: #222;
+        width: 200px;
+        background: linear-gradient(180deg, #1b1b1b, #111);
         color: white;
         padding: 20px;
         box-sizing: border-box;
         font-family: sans-serif;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.5);
     }
-    .sidebar h3 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        font-weight: normal;
+
+    .round-info {
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 8px;
+        color: #ffd700;
+        text-shadow: 0 0 6px #000, 0 0 10px #ffda44;
+        transition: transform 0.3s ease;
     }
+
+    .round-timer {
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 20px;
+        color: #1e90ff;
+        text-shadow: 0 0 6px #000;
+        transition: color 0.3s ease;
+    }
+
     .sidebar ul {
         list-style: none;
         padding-left: 0;
+        margin-top: 30px;
     }
+
     .sidebar ul li {
         margin-bottom: 12px;
     }
+
     .sidebar ul li a {
         color: #1e90ff;
         text-decoration: none;
         font-weight: bold;
         display: block;
+        padding: 6px 0;
+        transition: 0.3s;
     }
+
     .sidebar ul li a:hover {
-        text-decoration: underline;
+        color: #00bfff;
+        text-shadow: 0 0 8px #00bfff;
+        transform: translateX(3px);
     }
 
     .content {
-        margin-left: 200px;
+        margin-left: 220px;
         padding: 20px;
         color: white;
         font-family: sans-serif;
     }
+
     body {
         background-color: #121212;
         margin: 0;
     }
 </style>
+
+<script>
+    async function updateRoundTimer() {
+        try {
+            const [timerRes, roundRes] = await Promise.all([
+                fetch("/api/round_timer"),
+                fetch("/api/current_round")
+            ]);
+
+            const timerData = await timerRes.json();
+            const roundData = await roundRes.json();
+
+            const timerText = document.getElementById("round-timer");
+            const roundText = document.getElementById("round-info");
+
+
+            roundText.textContent = `Round ${roundData.round}`;
+
+            if (timerData.status === "no_round_started") {
+                timerText.textContent = "No round started";
+                timerText.style.color = "#888";
+            } else if (timerData.expired) {
+                timerText.textContent = "Round Ended";
+                timerText.style.color = "#ff4444";
+            } else {
+                let remaining = timerData.remaining_seconds;
+                let minutes = Math.floor(remaining / 60);
+                let seconds = remaining % 60;
+                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+     
+                if (remaining <= 30) {
+                    timerText.style.color = "#ff4444";
+                    timerText.style.textShadow = "0 0 8px #ff4444";
+                } else {
+                    timerText.style.color = "#1e90ff";
+                    timerText.style.textShadow = "0 0 6px #000";
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch round info", e);
+        }
+    }
+
+    // 每秒更新一次
+    setInterval(updateRoundTimer, 1000);
+    updateRoundTimer();
+</script>
