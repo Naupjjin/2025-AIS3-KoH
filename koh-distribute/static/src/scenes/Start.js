@@ -125,7 +125,7 @@ export class Start extends Phaser.Scene {
         }
         this.status = SHUTDOWN;
         this.start_event = this.time.addEvent({
-            delay: 5000, // 毫秒
+            delay: 1000, // 毫秒
             callback: this.start_game,
             callbackScope: this,
             loop: true
