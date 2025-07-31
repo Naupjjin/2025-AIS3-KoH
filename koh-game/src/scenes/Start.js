@@ -1,7 +1,7 @@
 // status: "running", "shutdown"
 const RUNNING = "running";
 const SHUTDOWN = "shutdown"
-const HOST = "http://127.0.0.1:48763"
+const HOST = "http://localhost:48763"
 
 const tileSize = 32;
 const scaleFactor = 0.8;
@@ -14,6 +14,7 @@ export class Start extends Phaser.Scene {
     scores = {};
     turn = 0;
     scoreTextMap = {};    last_track = 0;
+    turn_text = null;
     constructor() {
         super('Start');
 
@@ -25,12 +26,12 @@ export class Start extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('path', 'assets/path.png');
-        this.load.image('wall', 'assets/wall.png');
+        this.load.image('path', 'static/assets/path.png');
+        this.load.image('wall', 'static/assets/wall.png');
         for (let i = 1; i <= 10; i++) {
-            this.load.image(`character-${i}`, `assets/character-${i}.png`);
+            this.load.image(`character-${i}`, `static/assets/character-${i}.png`);
         }
-        this.load.image('chest', 'assets/chest.png');
+        this.load.image('chest', 'static/assets/chest.png');
     }
 
     create_map() {
@@ -296,15 +297,19 @@ export class Start extends Phaser.Scene {
                     // up
                     case 1:
                         if (this.check_movable(x, y - 1)) y--;
+                        break
                     // down
                     case 2:
                         if (this.check_movable(x, y + 1)) y++;
+                        break
                     // left
                     case 3:
                         if (this.check_movable(x - 1, y)) x--;
+                        break
                     // right
                     case 4:
                         if (this.check_movable(x + 1, y)) x++;
+                        break
                 }
             }
             if (this.turn < character.spawn_turn || (character.dead_turn != -1 && this.turn > character.dead_turn)) {
@@ -323,6 +328,14 @@ export class Start extends Phaser.Scene {
             } else {
                 chest.sprite.setVisible(true);
             }
+        }
+        if(!this.turn_text){
+            this.turn_text = this.add.text(20, 64, `Turn ${this.turn}`, {
+                    fontSize: '32px',
+                    color: "#ffffff"
+                }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
+        }else{
+            this.turn_text.setText(`Turn ${this.turn}`);`Turn ${this.turn}`
         }
     }
 }

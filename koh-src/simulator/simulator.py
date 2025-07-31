@@ -185,6 +185,10 @@ class Character:
         self.cid = last_cid
         last_cid += 1
         self.last_attackers: set[Player] = set()
+        if self.is_fork:
+            self.health = 2
+        else:
+            self.health = 3
     def can_interact(self, x:int, y:int):
         self_x = self.vm_char.x 
         self_y = self.vm_char.y
@@ -193,10 +197,7 @@ class Character:
             return True
         return False
     def spawn(self, map: list[list[int]]):
-        if self.is_fork:
-            self.health = 2
-        else:
-            self.health = 3
+
         rx = random.randrange(0, MAP_SIZE)
         ry = random.randrange(0, MAP_SIZE)
         if map != None:

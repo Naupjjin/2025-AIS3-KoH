@@ -1,0 +1,94 @@
+<!-- templates/sidebar.html -->
+<div class="sidebar">
+    <h3>Menu</h3>
+    <ul>
+        <li><a href="{{ url_for('root') }}">Home</a></li>
+        <li><a href="{{ url_for('uploads') }}">Uploads</a></li>
+        <button id="start_sim">Start simulation</button>
+        <p>press + to step turn</p>
+        <p>press - to rewind turn</p>
+    </ul>
+</div>
+
+<script>
+    document.getElementById("start_sim").addEventListener("click", function (e) {
+        e.preventDefault();
+        fetch("/start_simulate")
+    });
+</script>
+
+<style>
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 180px;
+        background-color: #222;
+        color: white;
+        padding: 20px;
+        box-sizing: border-box;
+        font-family: sans-serif;
+    }
+
+    .sidebar h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-weight: normal;
+    }
+
+    .sidebar ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .sidebar ul li {
+        margin-bottom: 12px;
+    }
+
+    .sidebar ul li a {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: bold;
+        display: block;
+    }
+
+    .sidebar ul li a:hover {
+        text-decoration: underline;
+    }
+
+    .content {
+        margin-left: 200px;
+        padding: 20px;
+        color: white;
+        font-family: sans-serif;
+    }
+
+    body {
+        background-color: #121212;
+        margin: 0;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+</style>
