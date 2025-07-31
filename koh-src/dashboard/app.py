@@ -5,7 +5,7 @@ from functools import wraps
 import threading
 import time
 import json
-from db import get_connection, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
+from db import get_connection, save_game_scores_to_db, update_score_for_round
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -274,10 +274,25 @@ def uploads():
     latest_time = None
 
     MAX_SIZE = 100 * 1024
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT scripts, upload_time
+        FROM scripts
+        WHERE teamid = %s
+        ORDER BY upload_time DESC
+        LIMIT 1
+        """,
+        (session["team_id"],)
+    )
+    row = cur.fetchone()
+
+    if row:
+        latest_script, latest_time = row
+    msg = None
+
     if request.method == "POST":
-        if PENDING:
-            flash("Current round is pending, uploads are disabled.", "error")
-            return redirect(url_for("user_panel"))
         file = request.files.get("file")
         if file:
             try:
@@ -286,46 +301,29 @@ def uploads():
                     return "File too large! Maximum 100 KB allowed.", 400
 
                 file_content = content.decode("utf-8", errors="ignore")
+                success, line = SIMULATOR.check_script(file_content)
+                if success:
+                    cur.execute(
+                        """
+                        INSERT INTO scripts (round, teamid, scripts)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (round, teamid)
+                        DO UPDATE SET scripts = EXCLUDED.scripts,
+                                    upload_time = CURRENT_TIMESTAMP
+                        """,
+                        (NOW_ROUND, session["team_id"], file_content)
+                    )
+                    latest_script = file_content
+                    conn.commit()
 
-                conn = get_connection()
-                cur = conn.cursor()
-                cur.execute(
-                    """
-                    INSERT INTO scripts (round, teamid, scripts)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (round, teamid)
-                    DO UPDATE SET scripts = EXCLUDED.scripts,
-                                upload_time = CURRENT_TIMESTAMP
-                    """,
-                    (NOW_ROUND, session["team_id"], file_content)
-                )
-                conn.commit()
-                cur.close()
-                conn.close()
-
-                return redirect(url_for("uploads"))
+                else:
+                    msg = f"Script parse error at line '{line}'"
             except:
                 return "Something Error, please check your upload scripts"
-    
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT scripts, upload_time
-        FROM scripts
-        WHERE teamid = %s
-        ORDER BY round DESC, upload_time DESC
-        LIMIT 1
-        """,
-        (session["team_id"],)
-    )
-    row = cur.fetchone()
     cur.close()
     conn.close()
 
-    if row:
-        latest_script, latest_time = row
-    return render_template("uploads.html", latest_script=latest_script, latest_time=latest_time)
+    return render_template("uploads.html", latest_script=latest_script, latest_time=latest_time, error=msg)
 
 ##### admin api
 
@@ -622,6 +620,4 @@ def round_timer():
 
 
 if __name__ == "__main__":
-    if NOW_ROUND == 1:
-        init_team_scripts()
     app.run(host="0.0.0.0", port=48763, debug=False)

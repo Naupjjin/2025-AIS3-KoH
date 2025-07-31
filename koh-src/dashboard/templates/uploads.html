@@ -21,6 +21,9 @@
     <div class="content">
         <h2>Uploads</h2>
         <div class="upload-container">
+            {% if error %}
+            <div>{{ error }}</div>
+            {% endif %}
             <form method="POST" enctype="multipart/form-data">
                 <input type="file" name="file" required>
                 <button type="submit">Upload</button>

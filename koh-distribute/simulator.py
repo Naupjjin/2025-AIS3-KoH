@@ -295,7 +295,7 @@ class Simulator:
             const char script[]
         );
         '''
-        self.vm.vm_parse_script.argtypes = [c_char_p]
+        self.vm.vm_parse_script.argtypes = [c_char_p, POINTER(c_int)]
         self.vm.vm_parse_script.restype = c_bool
         self.team_num = team_num
         self.new_round()
@@ -346,8 +346,10 @@ class Simulator:
             return
         self.players[id - 1].script = script
     
-    def check_script(self, script: str):
-        return self.vm.vm_parse_script(script.encode())
+    def check_script(self, script: str) -> tuple[bool, int]:
+        error_line = c_int(0)
+        success = self.vm.vm_parse_script(script.encode(), pointer(error_line))
+        return (success, error_line.value)
     
     def move(self, player: Player, character: Character, dx:int, dy:int):
         rx = character.vm_char.x + dx

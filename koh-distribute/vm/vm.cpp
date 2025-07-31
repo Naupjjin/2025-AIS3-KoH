@@ -112,7 +112,6 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
     {                                                        \
         if (!VAR)                                            \
         {                                                    \
-            printf("Failed parsing at line %d\n", __LINE__); \
             return {INS_INVALID, 0, 0, 0};                   \
         }                                                    \
     } while (0)
@@ -255,7 +254,7 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
 
 bool parse_opcode(
     const std::string_view opcode_str,
-    std::vector<Instruction> &instructions)
+    std::vector<Instruction> &instructions, int &error_line)
 {
     std::unordered_map<std::string_view, unsigned short> labels;
     {
@@ -350,7 +349,8 @@ bool parse_opcode(
             auto inst = parse_full_instruction(line, labels);
             if (inst.opcode == INS_INVALID)
             {
-                printf("Parse error at line '%d'\n", line_parsed);
+
+                error_line = line_parsed;
                 return false;
             }
             instructions.push_back(inst);
@@ -607,10 +607,10 @@ void debug_print_parsed(
 }
 
 extern "C" bool vm_parse_script(
-    const char script[])
+    const char script[], int *error_line)
 {
     std::vector<Instruction> instructions;
-    return parse_opcode(std::string(script), instructions);
+    return parse_opcode(std::string(script), instructions, *error_line);
 }
 
 extern "C" int vm_run(
@@ -627,10 +627,10 @@ extern "C" int vm_run(
     std::unordered_map<std::string, int> labels;
 
     int ret = 0;
-
+    int error_line = 0;
     try
     {
-        parse_opcode(opcode_cstr, instructions);
+        parse_opcode(opcode_cstr, instructions, error_line);
         // check_opcode_format(instructions);
     }
     catch (const std::runtime_error &e)

@@ -295,7 +295,7 @@ class Simulator:
             const char script[]
         );
         '''
-        self.vm.vm_parse_script.argtypes = [c_char_p]
+        self.vm.vm_parse_script.argtypes = [c_char_p, POINTER(c_int)]
         self.vm.vm_parse_script.restype = c_bool
         self.team_num = team_num
         self.new_round()
@@ -346,8 +346,10 @@ class Simulator:
             return
         self.players[id - 1].script = script
     
-    def check_script(self, script: str):
-        return self.vm.vm_parse_script(script.encode())
+    def check_script(self, script: str) -> tuple[bool, int]:
+        error_line = c_int(0)
+        success = self.vm.vm_parse_script(script.encode(), pointer(error_line))
+        return (success, error_line.value)
     
     def move(self, player: Player, character: Character, dx:int, dy:int):
         rx = character.vm_char.x + dx
@@ -564,15 +566,6 @@ loop:
     load_loc 0
     load_map 3 0 1
 '''
-    sim.finished = False
-    sim.read_map("maps/map_01.txt")
-    for i in range(1):
-        p = sim.players[i]
-        sim.players[i].script = while_script
-
-    start = time.time()
-    for i in range(1):
-        sim.simulate()
-
-    print(f"Elasped time: {time.time() - start} seconds")
+    s, line = sim.check_script(while_script)
+    print(s, line)
     

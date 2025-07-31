@@ -95,9 +95,14 @@ def uploads():
                     return "File too large! Maximum 100 KB allowed.", 400
 
                 file_content = content.decode("utf-8", errors="ignore")
-                STORED_SCRIPT = file_content
+                success, line = SIMULATOR.check_script(file_content)
+                msg = None
+                if success:
+                    STORED_SCRIPT = file_content
+                else:
+                    msg = f"Script parse error at line '{line}'"
 
-                return redirect(url_for("uploads"))
+                return render_template("uploads.html", latest_script=STORED_SCRIPT, error = msg)
             except:
                 return "Something Error, please check your upload scripts"
     

@@ -58,7 +58,8 @@ struct Instruction{
 };
 
 bool vm_parse_script(
-    const char script[]
+    const char script[],
+    int *error_line
 );
 
 int vm_run(

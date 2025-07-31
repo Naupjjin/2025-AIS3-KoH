@@ -1,26 +1,50 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Uploads</title>
     <style>
-        body { background-color: #121212; color: #f0f0f0; font-family: sans-serif; }
-        .content { margin-left: 220px; padding: 20px; }
-        .upload-container {
-            max-width: 600px; margin: 40px auto; background: #1e1e1e;
-            padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #0006;
+        body {
+            background-color: #121212;
+            color: #f0f0f0;
+            font-family: sans-serif;
         }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        .upload-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #0006;
+        }
+
         pre {
-            background: #1b1b1b; padding: 15px; border-radius: 8px;
-            overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;
+            background: #1b1b1b;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 </head>
+
 <body>
     {% include "sidebar.html" %}
     <div class="content">
         <h2>Uploads</h2>
+
         <div class="upload-container">
+            {% if error %}
+            <div>{{ error }}</div>
+            {% endif %}
             <form method="POST" enctype="multipart/form-data">
                 <input type="file" name="file" required>
                 <button type="submit">Upload</button>
@@ -34,4 +58,5 @@
         {% endif %}
     </div>
 </body>
+
 </html>
