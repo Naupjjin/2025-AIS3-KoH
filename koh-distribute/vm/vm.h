@@ -35,8 +35,10 @@ enum {
     INS_RET,                     // ret <mem1> or ret #<constant>
 
     INS_LOAD_SCORE,             // load_score <mem1>
+    INS_LOAD_LOC,               // load_loc <mem1>
+    INS_LOAD_MAP,               // load_map <mem1> <mem2> <mem3>
     INS_GET_ID,                 // get_id <mem1>
-
+    
     INS_LOCATE_NEAREST_CHEST,   // locate_nearest_k_chest k <mem2>
     INS_LOCATE_NEAREST_CHAR,    // locate_nearest_k_character k <mem2>
 
@@ -65,6 +67,7 @@ int vm_run(
     unsigned int* buffer,
     VM_Character** players, int player_count,
     VM_Chest** chests, int chest_count,
+    unsigned char* map,
     int scores, VM_Character* self
 );
 

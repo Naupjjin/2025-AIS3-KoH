@@ -280,12 +280,15 @@ class Simulator:
             unsigned int* buffer,
             VM_Character** players, int player_count,
             VM_Chest** chests, int chest_count,
+            unsigned char* map,
             int scores, VM_Character* self
         );
         '''
         self.vm.vm_run.argtypes = [c_int, c_char_p, POINTER(c_uint),
                                     POINTER(POINTER(VM_Character)), c_int,
-                                    POINTER(POINTER(VM_Chest)), c_int, c_int, POINTER(VM_Character)]
+                                    POINTER(POINTER(VM_Chest)), c_int,
+                                    POINTER(c_uint8),
+                                    c_int, POINTER(VM_Character)]
         self.vm.vm_run.restype = c_int
         '''
         bool vm_parse_script(
@@ -306,7 +309,6 @@ class Simulator:
 
     def read_map(self, map: str):
         self.map = [[0 for i in range(MAP_SIZE)] for j in range(MAP_SIZE)]
-        self.turnmap = copy.deepcopy(self.map)
         m = open(map, "r").read()
         i = 0
         for line in m.splitlines():
@@ -446,7 +448,10 @@ class Simulator:
 
     def simulate(self):
         character_num = 0
-        self.turnmap = copy.deepcopy(self.map)
+        self.turnmap = ((c_uint8 * MAP_SIZE) * MAP_SIZE)()
+        for i in range(MAP_SIZE):
+            for j in range(MAP_SIZE):
+                self.turnmap[i][j] = self.map[i][j]
         if self.turn % 10 == 0:
             for i in range(2):
                 new_chest = Chest(self.map)
@@ -484,20 +489,9 @@ class Simulator:
                     id = player.id
                     if fork.is_fork:
                         id = 0
-                    # # fill information
-                    player.buffer.tmp[0] = id
-                    dx = [0, 1, 1, 1, 0, -1, -1, -1]
-                    dy = [-1, -1, 0, 1, 1, 1, 0, -1]
-                    for i in range(8):
-                        x = fork.vm_char.x + dx[i]
-                        y = fork.vm_char.y + dy[i]
-                        if x < 0 or x >= MAP_SIZE or y < 0 or y >= MAP_SIZE:
-                            player.buffer.tmp[i + 1] = WALL
-                        else:
-                            player.buffer.tmp[i + 1] = self.turnmap[y][x]
                     opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                             characters, character_num,
-                            chests, len(self.chests), player.score, fork.vm_char)
+                            chests, len(self.chests), cast(pointer(self.turnmap), POINTER(c_uint8)), player.score, fork.vm_char)
                     memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
                     result_list.append((player, fork, opcode))
                 return result_list
@@ -564,22 +558,20 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    sim = Simulator(10)
+    sim = Simulator(1)
     while_script = '''
 loop:
-    je 0 0 loop
+    load_loc 0
+    load_map 3 0 1
 '''
     sim.finished = False
     sim.read_map("maps/map_01.txt")
-    for i in range(10):
+    for i in range(1):
         p = sim.players[i]
         sim.players[i].script = while_script
-        for i in range(3):
-            new_char = Character(p.forks[0].vm_char.x, p.forks[0].vm_char.y, True)
-            p.forks.append(new_char)
 
     start = time.time()
-    for i in range(10):
+    for i in range(1):
         sim.simulate()
 
     print(f"Elasped time: {time.time() - start} seconds")

@@ -9,6 +9,8 @@
 #include <chrono>
 #include <charconv>
 
+#define MAP_SIZE (50)
+
 static const std::unordered_map<std::string_view, unsigned char> opcode_map = {
     {"mov", INS_MOV},
     {"movi", INS_MOVI},
@@ -26,6 +28,8 @@ static const std::unordered_map<std::string_view, unsigned char> opcode_map = {
     {"ng", INS_NG},
     {"ret", INS_RET},
     {"load_score", INS_LOAD_SCORE},
+    {"load_loc", INS_LOAD_LOC},
+    {"load_map", INS_LOAD_MAP},
     {"get_id", INS_GET_ID},
     {"locate_nearest_k_chest", INS_LOCATE_NEAREST_CHEST},
     {"locate_nearest_k_character", INS_LOCATE_NEAREST_CHAR},
@@ -118,6 +122,7 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
     case INS_DEC:
     case INS_NG:
     case INS_LOAD_SCORE:
+    case INS_LOAD_LOC:
     case INS_GET_ID:
     {
         if (tokens.size() < 2)
@@ -227,6 +232,18 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
             inst.arg1 = k.value;
         }
         inst.arg2 = rdst.value;
+        break;
+    }
+    case INS_LOAD_MAP:
+    {
+        if (tokens.size() < 3)
+            return inst;
+        PARSE_OR_FAIL(rdst, get_raw_num(tokens[1]));
+        PARSE_OR_FAIL(x, get_raw_num(tokens[2]));
+        PARSE_OR_FAIL(y, get_raw_num(tokens[3]));
+        inst.arg1 = rdst.value;
+        inst.arg2 = x.value;
+        inst.arg3 = y.value;
         break;
     }
     default:
@@ -354,6 +371,7 @@ int execute_opcode(
     int scores,
     VM_Chest **chests,
     int chest_count,
+    unsigned char *map,
     VM_Character **players,
     int player_count)
 {
@@ -411,63 +429,6 @@ int execute_opcode(
 
         const auto &inst = instructions[pc++];
 
-        /*
-        // mem1 = mem2
-        mov <mem1> <mem2>
-        mov <mem1> #<constant>
-
-        // *mem1 = *mem2
-        movi <mem1> <mem2> <mem3>
-        // mem1 += constant
-        add <mem1> <mem2>
-        add <mem1> #<constant>
-
-        shr <mem1> <mem2>
-        shr <mem1> #<constant>
-        shl <mem1> <mem2>
-        shl <mem1> #<constant>
-
-        mul <mem1> <mem2>
-        mul <mem1> #<constant>
-
-        div <mem1> <mem2>
-        div <mem1> #<constant>
-
-        je <mem1> <mem2> $<label>
-        je <mem1> #<constant> $<label>
-        jg <mem1> <mem2> $<label>
-        jg <mem1> #<constant> $<label>
-
-        inc <mem1>
-        dec <mem2>
-        and <mem1> <mem2>
-        and <mem1> #<mem2>
-        or <mem1> <mem2>
-        or <mem1> #<mem2>
-
-        // mem = ~mem
-        ng <mem1>
-
-        ret <mem1> (end)
-        ret #<constant> (end)
-
-        // mem1 = score
-        load_score <mem1>
-        get_id <mem1>
-
-        // mem1[0], mem1[1] = chest[*mem2].xy
-        locate_nearest_k_chest <mem1> <mem2>
-        locate_nearest_k_chest <mem1> #<constant>
-
-        // mem1[0], mem1[1], mem1[2] = character[*mem2].is_fork, character[*mem2].xy
-        locate_nearest_k_character <mem1> <mem2>
-        locate_nearest_k_character <mem1> #<constant>
-
-        locate_nearest_k_chest + locate_nearest_k_character call limit == 5
-
-
-        ; Separate opcodes
-        */
         auto opcode = inst.opcode & ~CONST_INST;
         auto is_const = inst.opcode & CONST_INST;
         auto r = is_const ? inst.arg2 : read_mem(inst.arg2);
@@ -535,9 +496,23 @@ int execute_opcode(
         case INS_LOAD_SCORE:
             write_mem(inst.arg1, scores);
             break;
+        case INS_LOAD_LOC:
+            write_mem(inst.arg1, self->x);
+            write_mem(inst.arg1 + 1, self->y);
+            break;
+        case INS_LOAD_MAP:
+        {
+            auto x = read_mem(inst.arg2);
+            auto y = read_mem(inst.arg3);
+            write_mem(inst.arg1, map[y * MAP_SIZE + x]);
+            break;
+        }
+
         case INS_GET_ID:
+        {
             write_mem(inst.arg1, team_id);
             break;
+        }
         case INS_LOCATE_NEAREST_CHEST:
         {
             int mem_base = inst.arg1;
@@ -644,6 +619,7 @@ extern "C" int vm_run(
     unsigned int *buffer,
     VM_Character **players, int player_count,
     VM_Chest **chests, int chest_count,
+    unsigned char *map,
     int scores, VM_Character *self)
 {
 
@@ -679,7 +655,7 @@ extern "C" int vm_run(
     */
     try
     {
-        ret = execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, players, player_count);
+        ret = execute_opcode(instructions, labels, self, buffer, 100, team_id, scores, chests, chest_count, map, players, player_count);
     }
     catch (const std::runtime_error &e)
     {
@@ -690,48 +666,4 @@ extern "C" int vm_run(
         ret = 0;
 
     return ret;
-}
-
-int main()
-{
-
-    unsigned int buffer[100] = {};
-
-    VM_Character *players[] = {
-        new VM_Character{42, 4, false},
-        new VM_Character{3, 4, true},
-        new VM_Character{52, 4, false}};
-
-    VM_Character *self[] = {
-        new VM_Character{6, 4, false}}; // test is self
-
-    int player_count = sizeof(players) / sizeof(players[0]);
-
-    VM_Chest *chests[] = {
-        new VM_Chest{4, 4},
-        new VM_Chest{7, 4},
-        new VM_Chest{8, 4}};
-    int chest_count = sizeof(chests) / sizeof(chests[0]);
-
-    const char *opcode = R"(
-        locate_nearest_k_character 1 2;
-        locate_nearest_k_character 1 5;
-        locate_nearest_k_chest 1 8;
-        locate_nearest_k_chest 1 10;
-        locate_nearest_k_chest 1 12;
-        ret #1;
-
-    )";
-    int scores = 100;
-    int team_id = 7;
-
-    int ops = vm_run(team_id, opcode, buffer, players, player_count, chests, chest_count, scores, self[0]);
-
-    std::cout << "vm_run returned: " << ops << "\n";
-    for (int i = 0; i < 30; ++i)
-    {
-        std::cout << "buffer[" << i << "] = " << buffer[i] << "\n";
-    }
-
-    return 0;
 }
