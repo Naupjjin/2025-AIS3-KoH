@@ -1,7 +1,7 @@
 // status: "running", "shutdown"
 const RUNNING = "running";
 const SHUTDOWN = "shutdown"
-const HOST = "http://localhost:48763"
+const HOST = ""
 
 const tileSize = 32;
 const scaleFactor = 0.8;
@@ -104,6 +104,12 @@ export class Start extends Phaser.Scene {
 
             }
             startY += 32;
+        }
+        if(!this.turn_text){
+            this.turn_text = this.add.text(startX, startY, `Turn ${this.turn}`, {
+                    fontSize: '32px',
+                    color: "#ffffff"
+                }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
         }
     }
 
@@ -329,12 +335,7 @@ export class Start extends Phaser.Scene {
                 chest.sprite.setVisible(true);
             }
         }
-        if(!this.turn_text){
-            this.turn_text = this.add.text(20, 64, `Turn ${this.turn}`, {
-                    fontSize: '32px',
-                    color: "#ffffff"
-                }).setDepth(1000).setAlpha(0.4).setBackgroundColor("#000000");
-        }else{
+        if(this.turn_text){
             this.turn_text.setText(`Turn ${this.turn}`);`Turn ${this.turn}`
         }
     }

@@ -5,7 +5,6 @@ from functools import wraps
 import threading
 import time
 import json
-from flask_cors import CORS
 from db import get_connection, test_generate_random_game_scores, init_team_scripts, save_game_scores_to_db, update_score_for_round
 
 import sys
@@ -28,7 +27,6 @@ SIMULATOR = Simulator(10)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
-CORS(app)
 
 API_KEY = "TOMORINISCUTETHISISAPIKEY"
 
@@ -153,6 +151,12 @@ def logout():
     session.pop("is_admin", None)
 
     return redirect(url_for("login"))
+
+
+@app.route("/game")
+@login_required
+def game():
+    return render_template("game.html")
 
 
 @app.route("/user_panel")
