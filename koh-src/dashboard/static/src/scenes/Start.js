@@ -119,7 +119,7 @@ export class Start extends Phaser.Scene {
         if (this.status == SHUTDOWN) {
             if (!this.start_event) {
                 this.start_event = this.time.addEvent({
-                    delay: 2000, // 毫秒
+                    delay: 5000, // 毫秒
                     callback: this.start_game,
                     callbackScope: this,
                     loop: true
@@ -155,7 +155,8 @@ export class Start extends Phaser.Scene {
     }
 
     async sync_character() {
-        let records = await this.get_character_records();
+        console.log("sync character");
+        let records = await fetch(`${HOST}/get_character_records`).then(r => r.json());
         let i = 1;
         for (const [player, charList] of Object.entries(records)) {
             for (const char of charList) {
@@ -183,8 +184,15 @@ export class Start extends Phaser.Scene {
         console.log(records);
     }
 
+    async sync_turn(){
+        console.log("sync turn");
+        let r = await fetch(`${HOST}/api/round_timer`, r=>r.json());
+        console.log(r);
+    }
+
     async sync_chest() {
-        let records = await this.get_chest_records();
+        console.log("sync chest");
+        let records = await fetch(`${HOST}/get_chest_records`).then(r => r.json());
         for (const chest of records) {
             if (!this.chests[chest.cid]) {
                 this.chests[chest.cid] = {
@@ -243,23 +251,6 @@ export class Start extends Phaser.Scene {
         }
     }
 
-    async get_character_records() {
-        console.log("get_character_records");
-        try {
-            let r = await fetch(`${HOST}/get_character_records`).then(r => r.json());
-            return r;
-        } catch {
-        }
-    }
-
-    async get_chest_records() {
-        console.log("get_chest_records");
-        try {
-            let r = await fetch(`${HOST}/get_chest_records`).then(r => r.json());
-            return r;
-        } catch {
-        }
-    }
 
     check_movable(x, y) {
         return x >= 0 && x < 50 && y >= 0 && y < 50 && this.map[y][x] == 0;

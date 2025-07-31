@@ -482,7 +482,8 @@ class Simulator:
                 character_opcode += job.result()
         # do operations
         for player, character, opcode in character_opcode:
-            self.char_records[character].opcodes.append(opcode)
+            if character in self.char_records:
+                self.char_records[character].opcodes.append(opcode)
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)

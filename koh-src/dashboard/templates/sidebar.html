@@ -25,7 +25,7 @@
         padding: 20px;
         box-sizing: border-box;
         font-family: sans-serif;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.5);
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.5);
     }
 
     .round-info {
@@ -87,49 +87,54 @@
 </style>
 
 <script>
+    let timeData = {
+        "status": "no_round_started"
+    };
+    let roundData = {
+        "round": "?"
+    };
     async function updateRoundTimer() {
-        try {
-            const [timerRes, roundRes] = await Promise.all([
-                fetch("/api/round_timer"),
-                fetch("/api/current_round")
-            ]);
-
-            const timerData = await timerRes.json();
-            const roundData = await roundRes.json();
-
-            const timerText = document.getElementById("round-timer");
-            const roundText = document.getElementById("round-info");
+        const timerText = document.getElementById("round-timer");
+        const roundText = document.getElementById("round-info");
 
 
-            roundText.textContent = `Round ${roundData.round}`;
+        roundText.textContent = `Round ${roundData.round}`;
 
-            if (timerData.status === "no_round_started") {
-                timerText.textContent = "No round started";
-                timerText.style.color = "#888";
-            } else if (timerData.expired) {
-                timerText.textContent = "Round Ended";
-                timerText.style.color = "#ff4444";
-            } else {
-                let remaining = timerData.remaining_seconds;
-                let minutes = Math.floor(remaining / 60);
-                let seconds = remaining % 60;
-                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-     
-                if (remaining <= 30) {
-                    timerText.style.color = "#ff4444";
-                    timerText.style.textShadow = "0 0 8px #ff4444";
-                } else {
-                    timerText.style.color = "#1e90ff";
-                    timerText.style.textShadow = "0 0 6px #000";
-                }
+        if (timerData.status === "no_round_started") {
+            timerText.textContent = "No round started";
+            timerText.style.color = "#888";
+        } else if (timerData.expired) {
+            timerText.textContent = "Round Ended";
+            timerText.style.color = "#ff4444";
+        } else {
+            timerData.remaining_seconds--;
+            let remaining = timerData.remaining_seconds;
+            if (remaining < 0) {
+                timeData.expired = true;
+                return
             }
-        } catch (e) {
-            console.error("Failed to fetch round info", e);
+            let minutes = Math.floor(remaining / 60);
+            let seconds = remaining % 60;
+            timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+
+            if (remaining <= 30) {
+                timerText.style.color = "#ff4444";
+                timerText.style.textShadow = "0 0 8px #ff4444";
+            } else {
+                timerText.style.color = "#1e90ff";
+                timerText.style.textShadow = "0 0 6px #000";
+            }
         }
     }
-
+    fetch("/api/round_timer").then(r => r.json()).then(r => timerData = r);
+    fetch("/api/current_round").then(r => r.json()).then(r => roundData = r);
     // 每秒更新一次
     setInterval(updateRoundTimer, 1000);
+    setInterval(() => {
+        fetch("/api/round_timer").then(r => r.json()).then(r => timerData = r);
+        fetch("/api/current_round").then(r => r.json()).then(r => roundData = r);
+    }, 10000);
+
     updateRoundTimer();
 </script>

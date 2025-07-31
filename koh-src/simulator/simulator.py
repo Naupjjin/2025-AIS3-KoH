@@ -487,7 +487,8 @@ class Simulator:
                 character_opcode += job.result()
         # do operations
         for player, character, opcode in character_opcode:
-            self.char_records[character].opcodes.append(opcode)
+            if character in self.char_records:
+                self.char_records[character].opcodes.append(opcode)
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
@@ -537,48 +538,22 @@ class Simulator:
 
 if __name__ == "__main__":
     sim = Simulator(10)
+    while_script = '''
+loop:
+    je 0 0 loop
+'''
     sim.finished = False
     sim.read_map("maps/map_01.txt")
     for i in range(10):
-        sim.players[i].script = '''
-    add 0 #1
-    je 0 #1 label_down
-    je 0 #2 label_right
-    je 0 #3 label_up
-    je 0 #4 label_left
-    label_down:
-    ret #2
-    label_right:
-    ret #4
-    label_up:
-    ret #1
-    label_left:
-    ret #7
-    '''
+        p = sim.players[i]
+        sim.players[i].script = while_script
+        for i in range(3):
+            new_char = Character(p.forks[0].vm_char.x, p.forks[0].vm_char.y, True)
+            p.forks.append(new_char)
 
-    for i in range(5):
+    start = time.time()
+    for i in range(10):
         sim.simulate()
-            
-        print(sim.dump_scores())
-        print(sim.dump_chest_records())
+
+    print(f"Elasped time: {time.time() - start} seconds")
     
-    '''
-        def simulate_all(sim: Simulator, total_rounds=200):
-        for i in range(total_rounds):
-            sim.simulate()
-        sim.finished = True  
-
-        
-    t = threading.Thread(target=simulate_all, args=(sim,), daemon=True)
-    t.start()
-
-  
-    while not sim.finished:
-        print(sim.dump_records())
-        time.sleep(1)
-
-    print(sim.dump_records())
-    print(sim.dump_scores())
-
-    t.join()
-    '''
