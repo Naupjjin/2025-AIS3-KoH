@@ -19,8 +19,8 @@ export class Start extends Phaser.Scene {
         super('Start');
 
         // 隨機生成地圖 (1 = wall, 0 = path)
-        this.map = Array.from({ length: 200 }, () =>
-            Array.from({ length: 200 }, () => 0)
+        this.map = Array.from({ length: 50 }, () =>
+            Array.from({ length: 50 }, () => 0)
         );
         this.status = SHUTDOWN;
     }
@@ -256,7 +256,7 @@ export class Start extends Phaser.Scene {
     }
 
     check_movable(x, y) {
-        return x >= 0 && x < 200 && y >= 0 && y < 200 && this.map[y][x] == 0;
+        return x >= 0 && x < 50 && y >= 0 && y < 50 && this.map[y][x] == 0;
     }
     update() {
         if (this.key.plus.isDown) {

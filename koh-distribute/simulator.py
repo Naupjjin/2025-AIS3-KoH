@@ -486,18 +486,25 @@ class Simulator:
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
+                    break
                 case 2:
                     self.move(player, character, 0, 1)
+                    break
                 case 3:
                     self.move(player, character, -1, 0)
+                    break
                 case 4:
                     self.move(player, character, 1, 0)
+                    break
                 case 5:
                     self.interact(player, character)
+                    break
                 case 6:
                     self.attack(player, character)
+                    break
                 case 7:
                     self.fork(player, character)
+                    break
         # remove dead characters
         for player in self.players:
             for fork in player.forks:
