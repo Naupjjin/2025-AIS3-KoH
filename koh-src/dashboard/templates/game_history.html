@@ -45,7 +45,6 @@
                 {% for team in teams %}
                     <th>{{ team }}</th>
                 {% endfor %}
-                <th>Result</th> <!-- 新增欄位 -->
             </tr>
         </thead>
         <tbody>
@@ -84,9 +83,6 @@
                             <td style="background:#333;">–</td>
                         {% endif %}
                     {% endfor %}
-                    <td>
-                        <a href="{{ url_for('get_result', round_num=rnd) }}">View Result</a>
-                    </td>
                 </tr>
             {% endfor %}
         </tbody>
