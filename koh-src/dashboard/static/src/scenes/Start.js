@@ -179,7 +179,7 @@ export class Start extends Phaser.Scene {
             loop: true
         });
         this.timer_event = this.time.addEvent({
-            delay: 1500,
+            delay: 1000,
             callback: () => this.turn = Math.min(200, this.turn + 1),
             callbackScope: this,
             loop: true
