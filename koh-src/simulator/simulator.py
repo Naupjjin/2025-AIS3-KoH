@@ -406,6 +406,7 @@ class Simulator:
             player.forks.append(new_char)
             player.score -= player.fork_cost
             player.fork_cost *= 1.2
+            player.fork_cost = int(player.fork_cost)
             print("fork")
         return
     
