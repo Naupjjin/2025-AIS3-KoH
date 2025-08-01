@@ -223,14 +223,14 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
         {
             PARSE_OR_FAIL(k, get_num(tokens[2], '#'));
             inst.opcode |= CONST_INST;
-            inst.arg1 = k.value;
+            inst.arg2 = k.value;
         }
         else
         {
             PARSE_OR_FAIL(k, get_raw_num(tokens[2]));
-            inst.arg1 = k.value;
+            inst.arg2 = k.value;
         }
-        inst.arg2 = rdst.value;
+        inst.arg1 = rdst.value;
         break;
     }
     case INS_LOAD_MAP:
