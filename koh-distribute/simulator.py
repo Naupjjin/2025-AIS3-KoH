@@ -480,6 +480,12 @@ class Simulator:
                 characters[i] = pointer(fork.vm_char)
                 i += 1
 
+        i = 0
+        for chest in self.chests:
+                chests[i] = pointer(chest.vm_chest)
+                i += 1
+
+
         # record results
         character_opcode = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.players)) as executor:
@@ -491,6 +497,7 @@ class Simulator:
                     id = player.id
                     if fork.is_fork:
                         id = 0
+                    opcode = 0
                     opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                             characters, character_num,
                             chests, len(self.chests), cast(pointer(self.turnmap), POINTER(c_uint8)), player.score, fork.vm_char)
@@ -509,31 +516,24 @@ class Simulator:
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
-                    break
                 case 2:
                     self.move(player, character, 0, 1)
-                    break
                 case 3:
                     self.move(player, character, -1, 0)
-                    break
                 case 4:
                     self.move(player, character, 1, 0)
-                    break
                 case 5:
                     self.interact(player, character)
-                    break
                 case 6:
                     self.attack(player, character)
-                    break
                 case 7:
                     self.fork(player, character)
-                    break
         # remove dead characters
         for player in self.players:
             for fork in player.forks:
                 if fork.move_to != None:
                     fork.vm_char.x, fork.vm_char.y = fork.move_to
-                    print(f"move to {fork.vm_char.x} {fork.vm_char.y}")
+                    print(f"{player.id}: move to {fork.vm_char.x} {fork.vm_char.y}")
                     fork.move_to = None
                 if fork.health <= 0:
                     for attacker in fork.last_attackers:
