@@ -497,6 +497,7 @@ class Simulator:
                     id = player.id
                     if fork.is_fork:
                         id = 0
+                    opcode = 0
                     opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                             characters, character_num,
                             chests, len(self.chests), cast(pointer(self.turnmap), POINTER(c_uint8)), player.score, fork.vm_char)
