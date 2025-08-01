@@ -363,7 +363,6 @@ def simulator(round_num):
     """, (round_num - 1,))
     rows = cur.fetchall()
 
-    print(rows)
     cur.close()
     conn.close()
 
@@ -375,6 +374,7 @@ def simulator(round_num):
     print(rows)
     for team_id, script in rows:
         if 0 < team_id and team_id <= len(SIMULATOR.players):
+            print(team_id)
             SIMULATOR.players[team_id - 1].script = script
     # simulate it
     t = threading.Thread(target=simulate_all, args=(SIMULATOR,), daemon=True)

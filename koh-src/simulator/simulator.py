@@ -516,31 +516,24 @@ class Simulator:
             match opcode:
                 case 1:
                     self.move(player, character, 0, -1)
-                    break
                 case 2:
                     self.move(player, character, 0, 1)
-                    break
                 case 3:
                     self.move(player, character, -1, 0)
-                    break
                 case 4:
                     self.move(player, character, 1, 0)
-                    break
                 case 5:
                     self.interact(player, character)
-                    break
                 case 6:
                     self.attack(player, character)
-                    break
                 case 7:
                     self.fork(player, character)
-                    break
         # remove dead characters
         for player in self.players:
             for fork in player.forks:
                 if fork.move_to != None:
                     fork.vm_char.x, fork.vm_char.y = fork.move_to
-                    print(f"move to {fork.vm_char.x} {fork.vm_char.y}")
+                    print(f"{player.id}: move to {fork.vm_char.x} {fork.vm_char.y}")
                     fork.move_to = None
                 if fork.health <= 0:
                     for attacker in fork.last_attackers:
@@ -563,19 +556,3 @@ class Simulator:
             self.score_records[p].scores.append(p.score)
         self.turn += 1
         return
-
-
-
-if __name__ == "__main__":
-    sim = Simulator(1)
-    while_script = '''
-loop:
-    load_loc 0
-    load_map 3 0 1
-'''
-    s, line = sim.check_script(while_script)
-    sim.players[0].script = while_script
-    print(s, line)
-    for i in range(200):
-        sim.simulate()
-    
