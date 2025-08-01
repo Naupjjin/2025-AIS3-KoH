@@ -158,7 +158,7 @@ class Chest:
         self.result = [rsa_list[4]]
 
     
-    CHALS = [reverse_chal, sort_chal, rsa_chal, point_addition_chal]
+    CHALS = [sort_chal]
 
     def __init__(self, map):
         global last_chest_id
