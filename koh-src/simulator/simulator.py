@@ -537,8 +537,8 @@ class Simulator:
                     print(f"{player.id}: move to {fork.vm_char.x} {fork.vm_char.y}")
                     fork.move_to = None
                 if fork.health <= 0:
+                    player.forks.remove(fork)
                     for attacker in fork.last_attackers:
-                        player.forks.remove(fork)
                         self.char_records[fork].dead_turn = self.turn
                         if fork.is_fork:
                             attacker.score += KILL_FORK_SCORE
