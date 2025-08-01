@@ -309,7 +309,7 @@ def uploads():
                         VALUES (%s, %s, %s)
                         ON CONFLICT (round, teamid)
                         DO UPDATE SET scripts = EXCLUDED.scripts,
-                                    upload_time = CURRENT_TIMESTAMP
+                                    upload_time = (CURRENT_TIMESTAMP  AT TIME ZONE 'Asia/Taipei')
                         """,
                         (NOW_ROUND, session["team_id"], file_content)
                     )
