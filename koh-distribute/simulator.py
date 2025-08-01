@@ -149,7 +149,7 @@ class Chest:
 
             m2 = pow(c, d ,n)
             if m2 != m:
-                return rsa_gen
+                return rsa_gen()
 
             return (p, q, e, c, m)
 
