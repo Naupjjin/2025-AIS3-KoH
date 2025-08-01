@@ -506,6 +506,8 @@ int execute_opcode(
             auto y = read_mem(inst.arg3);
             if (x >= 0 && x < MAP_SIZE && y >= 0 && y < MAP_SIZE){
                 write_mem(inst.arg1, map[y * MAP_SIZE + x]);
+            }else{
+                write_mem(inst.arg1, 1);
             }
             break;
         }
