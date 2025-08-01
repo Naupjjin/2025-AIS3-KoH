@@ -1,12 +1,18 @@
 import psycopg2
 import hashlib
+import os
+
+DB_HOST = os.environ.get('DB_HOST', "127.0.0.1")
+DB_PORT = os.environ.get('DB_PORT', "127.0.0.1")
+DB_USER = os.environ.get("DB_USER", "koh-admin")
+DB_PASS = os.environ.get("DB_PASS", "9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2")
 
 def get_connection():
     return psycopg2.connect(
         dbname="koh-db",
-        user="koh-admin",
-        password="9c7f6b1b946aad1a6333dfb6e25f8d21945de8b33d5c67050cf66ec3a94b5dc2",
-        host="127.0.0.1",    
+        user=DB_USER,
+        password=DB_PASS,
+        host=DB_HOST,    
         port="5432"
     )
 

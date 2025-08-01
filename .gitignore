@@ -5,3 +5,5 @@ pgdata
 .DS_Store
 player_info
 chest_info
+koh-chest-info
+koh-player-info
