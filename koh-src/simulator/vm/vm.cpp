@@ -235,7 +235,7 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
     }
     case INS_LOAD_MAP:
     {
-        if (tokens.size() < 3)
+        if (tokens.size() < 4)
             return inst;
         PARSE_OR_FAIL(rdst, get_raw_num(tokens[1]));
         PARSE_OR_FAIL(x, get_raw_num(tokens[2]));

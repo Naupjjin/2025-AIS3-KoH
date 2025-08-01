@@ -1,4 +1,4 @@
-import random
+limport random
 import math
 
 def is_prime(n):
