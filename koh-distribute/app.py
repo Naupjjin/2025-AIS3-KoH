@@ -115,7 +115,7 @@ def start_simulate():
     ROUND_START_TIME = time.time()
     print(f"== Start to Simulator ==")
     # initialize
-    SIMULATOR = Simulator(1)
+    SIMULATOR = Simulator(10)
     SIMULATOR.finished = False
 
     def simulate_all(sim: Simulator, total_rounds=200):
