@@ -135,7 +135,7 @@ export class Start extends Phaser.Scene {
     async start_game() {
         this.reset();
         let r = await fetch(`${HOST}/api/round_info`).then(r => r.json());
-        if (r["status"] == "running" && !r["expired"]) {
+        if (r["status"] == "running") {
             this.status = RUNNING;
         } else {
             if (this.status == RUNNING) {
@@ -161,7 +161,7 @@ export class Start extends Phaser.Scene {
             delay: 1000, // 毫秒
             callback: async () => {
                 let r = await fetch(`${HOST}/api/round_info`).then(r => r.json());
-                if (r["status"] != "running" || r["expired"]) {
+                if (r["status"] != "running") {
                     this.restart();
                     return;
                 }
@@ -303,8 +303,8 @@ export class Start extends Phaser.Scene {
         for (let character of Object.values(this.characters)) {
             let x = character.spawn_x;
             let y = character.spawn_y;
-            for (let i = character.spawn_turn; i < this.turn && this.turn < character.opcodes.length; i++) {
-                switch (character.opcodes[i]) {
+            for (let i = character.spawn_turn; i < this.turn; i++) {
+                switch (character.opcodes[i - character.spawn_turn]) {
                     // up
                     case 1:
                         if (this.check_movable(x, y - 1)) y--;
@@ -328,6 +328,7 @@ export class Start extends Phaser.Scene {
             } else {
                 character.sprite.setVisible(true);
             }
+
             character.sprite
                 .setPosition(
                     x * displayTileSize - displayTileSize / 2,
