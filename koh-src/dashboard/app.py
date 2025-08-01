@@ -356,15 +356,10 @@ def simulator(round_num):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT s.teamid, s.scripts
-        FROM scripts s
-        JOIN (
-            SELECT teamid, MAX(upload_time) AS latest_upload
-            FROM scripts
-            WHERE round <= %s
-            GROUP BY teamid
-        ) latest
-        ON s.teamid = latest.teamid AND s.upload_time = latest.latest_upload
+        SELECT DISTINCT ON (teamid) teamid, scripts
+        FROM scripts
+        WHERE round <= %s
+        ORDER BY teamid, upload_time DESC
     """, (round_num - 1,))
     rows = cur.fetchall()
 
