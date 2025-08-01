@@ -46,7 +46,7 @@ INSERT INTO teams (team_id, team_token, is_admin) VALUES
         (10, 'wearenpcyeahhhhh', False);
 
 INSERT INTO scripts (round, teamid, scripts)
-SELECT r AS round, t.team_id, 'ret #0'
+SELECT r AS 1, t.team_id, 'ret #0'
 FROM teams t
 CROSS JOIN generate_series(1, 10) AS r;
 
