@@ -480,6 +480,12 @@ class Simulator:
                 characters[i] = pointer(fork.vm_char)
                 i += 1
 
+        i = 0
+        for chest in self.chests:
+                chests[i] = pointer(chest.vm_chest)
+                i += 1
+
+
         # record results
         character_opcode = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.players)) as executor:
@@ -567,5 +573,8 @@ loop:
     load_map 3 0 1
 '''
     s, line = sim.check_script(while_script)
+    sim.players[0].script = while_script
     print(s, line)
+    for i in range(200):
+        sim.simulate()
     
