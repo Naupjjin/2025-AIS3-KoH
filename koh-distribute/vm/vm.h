@@ -6,6 +6,7 @@ extern "C" {
 
 struct VM_Character {
     int x, y;
+    int team_id;
     bool is_fork;
 };
 

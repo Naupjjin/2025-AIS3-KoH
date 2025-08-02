@@ -376,10 +376,6 @@ int execute_opcode(
     int pc = 0;
     auto start_time = std::chrono::steady_clock::now();
 
-    int chest_call_count = 0;
-    int character_call_count = 0;
-    int CHEST_CHARACTER_CALL_LIMIT = 5;
-
     auto read_mem = [&](int addr) -> unsigned int
     {
         if (addr < 0 || addr >= buffer_size)
@@ -512,21 +508,20 @@ int execute_opcode(
 
         case INS_GET_ID:
         {
-            write_mem(inst.arg1, team_id);
+            write_mem(inst.arg1, self->is_fork ? 0 : team_id);
             break;
         }
         case INS_LOCATE_NEAREST_CHEST:
         {
             int mem_base = inst.arg1;
             unsigned int k = r;
-            if (k >= (unsigned int)chest_count || chest_call_count + character_call_count >= CHEST_CHARACTER_CALL_LIMIT)
+            if (k >= (unsigned int)chest_count)
             {
                 write_mem(mem_base, -1);
                 write_mem(mem_base + 1, -1);
                 break;
             }
 
-            chest_call_count++;
             struct Entry
             {
                 int x, y, dist, idx;
@@ -549,14 +544,6 @@ int execute_opcode(
         {
             int mem_base = inst.arg1;
             unsigned int k = r;
-            if (k >= (unsigned int)player_count || chest_call_count + character_call_count >= CHEST_CHARACTER_CALL_LIMIT)
-            {
-                write_mem(mem_base, -1);
-                write_mem(mem_base + 1, -1);
-                write_mem(mem_base + 2, -1);
-                break;
-            }
-            character_call_count++;
             struct Entry
             {
                 int x, y, dist, idx;
@@ -565,10 +552,18 @@ int execute_opcode(
             std::vector<Entry> character_info;
             for (int i = 0; i < player_count; ++i)
             {
+                if(players[i]->team_id == team_id) continue;
                 int dx = players[i]->x - self->x;
                 int dy = players[i]->y - self->y;
                 int dist = dx * dx + dy * dy;
                 character_info.emplace_back(players[i]->x, players[i]->y, dist, i);
+            }
+            if (k >= character_info.size())
+            {
+                write_mem(mem_base, -1);
+                write_mem(mem_base + 1, -1);
+                write_mem(mem_base + 2, -1);
+                break;
             }
             std::sort(character_info.begin(), character_info.end(), [](auto &a, auto &b)
                       { return a.dist < b.dist; });

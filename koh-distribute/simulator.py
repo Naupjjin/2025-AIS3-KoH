@@ -12,7 +12,7 @@ import os
 MAP_SIZE = 50
 
 class VM_Character(Structure):
-    _fields_ = [("x", c_int), ("y", c_int), ("is_fork", c_bool)]
+    _fields_ = [("x", c_int), ("y", c_int), ("team_id", c_int), ("is_fork", c_bool)]
 
 class VM_Chest(Structure):
     _fields_ = [("x", c_int), ("y", c_int)]
@@ -176,9 +176,9 @@ class Chest:
     
 last_cid = 0
 class Character:
-    def __init__(self, x: int, y :int, is_fork: bool):
+    def __init__(self, x: int, y :int, team_id: int, is_fork: bool):
         global last_cid
-        self.vm_char = VM_Character(x, y, is_fork)
+        self.vm_char = VM_Character(x, y, team_id, is_fork)
         self.selfbuf = (c_uint * 8)()
         self.is_fork = is_fork
         self.move_to = None
@@ -213,7 +213,7 @@ class Player:
         self.id = id
         self.buffer = VM_Buffer()
         self.script = script
-        self.forks = [Character(0, 0, False)]
+        self.forks = [Character(0, 0, id, False)]
         self.score = 0
         self.fork_cost = 70
         pass
@@ -401,7 +401,7 @@ class Simulator:
             print("exceeds fork limit")
             return 
         if player.score >= player.fork_cost:
-            new_char = Character(character.vm_char.x, character.vm_char.y, True)
+            new_char = Character(character.vm_char.x, character.vm_char.y, player.id, True)
             self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
             player.forks.append(new_char)
             player.score -= player.fork_cost
@@ -495,11 +495,8 @@ class Simulator:
                 for fork in player.forks:
                     memset(player.buffer.tmp, 0, 42 * sizeof(c_uint))
                     memmove(player.buffer.self, fork.selfbuf, 8 * sizeof(c_uint))
-                    id = player.id
-                    if fork.is_fork:
-                        id = 0
                     opcode = 0
-                    opcode = self.vm.vm_run(id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
+                    opcode = self.vm.vm_run(player.id, player.script.encode(), cast(pointer(player.buffer), POINTER(c_uint)),
                             characters, character_num,
                             chests, len(self.chests), cast(pointer(self.turnmap), POINTER(c_uint8)), player.score, fork.vm_char)
                     memmove(fork.selfbuf, player.buffer.self, 8 * sizeof(c_uint))
@@ -547,7 +544,7 @@ class Simulator:
 
                     if not fork.is_fork:
                         # respawn
-                        new_char = Character(0, 0, False)
+                        new_char = Character(0, 0, player.id, False)
                         new_char.spawn(self.map)
                         self.char_records[new_char] = CharacterRecord(player.id, new_char.vm_char.x, new_char.vm_char.y, self.turn)
                         player.forks.append(new_char)
