@@ -435,7 +435,7 @@ int execute_opcode(
         {
             unsigned int dst = read_mem(inst.arg1);
             unsigned int src = read_mem(inst.arg2);
-            write_mem(read_mem(dst), read_mem(src));
+            write_mem(dst, read_mem(src));
             break;
         }
         case INS_ADD:
