@@ -176,14 +176,12 @@ Instruction parse_full_instruction(std::string_view line, std::unordered_map<std
     }
     case INS_MOVI:
     {
-        if (tokens.size() < 4)
+        if (tokens.size() < 3)
             return inst;
         PARSE_OR_FAIL(a1, get_raw_num(tokens[1]));
         PARSE_OR_FAIL(a2, get_raw_num(tokens[2]));
-        PARSE_OR_FAIL(a3, get_raw_num(tokens[3]));
         inst.arg1 = a1.value;
         inst.arg2 = a2.value;
-        inst.arg3 = a3.value;
         break;
     }
     case INS_JE:
@@ -440,7 +438,7 @@ int execute_opcode(
         case INS_MOVI:
         {
             unsigned int dst = read_mem(inst.arg1);
-            unsigned int src = read_mem(inst.arg3);
+            unsigned int src = read_mem(inst.arg2);
             write_mem(read_mem(dst), read_mem(src));
             break;
         }
