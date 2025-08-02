@@ -17,6 +17,7 @@ export class Start extends Phaser.Scene {
     turn_text = null;
     elasped_time = 0;
     pixel_textures = [];
+    simulate_finish = false;
     constructor() {
         super('Start');
 
@@ -126,6 +127,7 @@ export class Start extends Phaser.Scene {
         if (this.timer_event) {
             this.timer_event.remove();
         }
+        this.simulate_finish = false;
         this.status = SHUTDOWN;
         this.start_event = this.time.addEvent({
             delay: 5000, // 毫秒
@@ -169,11 +171,12 @@ export class Start extends Phaser.Scene {
                     this.restart();
                     return;
                 }
-                if (!r["simulate_finished"]) {
+                if (!this.simulate_finish) {
                     this.sync_character();
                     this.sync_chest();
                     this.sync_score();
                 }
+                this.simulate_finish = r["simulate_finished"];
             },
             callbackScope: this,
             loop: true
