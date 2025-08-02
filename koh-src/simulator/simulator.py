@@ -32,16 +32,16 @@ class Chest:
         self.param = [random.randint(0, 65536) for _ in range(7)]
         self.result = copy.deepcopy(self.param)
         self.param.reverse()
-        self.score = 30
+        self.score = 60
 
     def sort_chal(self):
         self.param = [random.randint(0, 65536) for _ in range(7)]
         self.result = copy.deepcopy(self.param)
         self.result.sort()
-        self.score = 40
+        self.score = 80
     
     def point_addition_chal(self):
-        self.score = 60
+        self.score = 120
 
         # y^2 = x^3 + a*x + b (mod p)
         p = 9739
@@ -97,7 +97,7 @@ class Chest:
         self.result = [R[0], R[1]]
 
     def rsa_chal(self):
-        self.score = 50
+        self.score = 100
 
         def is_prime(n):
             if n < 2:
