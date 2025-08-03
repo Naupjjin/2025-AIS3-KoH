@@ -1,5 +1,5 @@
 # Mortis GO\!\!!!! 
-> Author: naup96321、Itiscaleb
+> Author: naup96321、Itiscaleb、Curious
 
 [簡報](https://docs.google.com/presentation/d/1nrtJzzr6muogeTYb40M8NPEScsHizw5zIWlP42dyWSo/edit?usp=sharing)
 ## Description
